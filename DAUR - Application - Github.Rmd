@@ -1,0 +1,2768 @@
+---
+title: "Data Augmentation for imbalanced Regression - Application"
+author: "Anonymous"
+date: "31/05/2022"
+output:
+  pdf_document: 
+    toc: yes
+    number_sections: yes
+  html_document:
+    df_print: paged
+---
+
+*Import library*
+
+```{r library , include=FALSE}
+library("mgcv")
+library("CASdatasets")
+library("MASS")
+library("Metrics")
+library("mclust")
+library("ggplot2")
+library("UBL")
+library("MASS")
+library("reticulate")
+library("randomForest")
+library("ks")
+library("kernelboot")
+library("smotefamily")
+library("synthpop")
+library("earth")
+library("mda")
+library("beepr")
+library("plotly")
+library("splines")
+library("pscl")
+library("h2o")
+library("statip")
+library("seewave")
+```
+
+
+```{r rep, include=FALSE}
+require("knitr")
+knitr::opts_chunk$set(echo = FALSE,warning=FALSE)
+opts_knit$set(root.dir = "C:/Users/user/OneDrive/Perso/Thèse/Travaux/Exogenous Sampling/Datasets")
+
+relance = T # = T to restart the simulations, F to work with the loaded workspace
+
+# Workspace setting
+setwd("C:/Users/user/OneDrive/Perso/Thèse/Travaux/Exogenous Sampling/Appli")
+
+if (relance == F){
+  load("C:/Users/user/OneDrive/Perso/Thèse/Travaux/Exogenous Sampling/Appli/WKS/wks-Appli-Telematics-ZIP MGCV.RData")
+}
+```
+
+
+*Sources*
+dataset : http://www2.math.uconn.edu/~valdez/data.html
+paper : Synthetic Dataset Generation of Driver Telematics : https://arxiv.org/pdf/2102.00252.pdf
+
+```{r input, include=FALSE}
+base0 = read.csv("telematics_syn-032021.csv", header=T)
+```
+
+
+
+*Workspace setting*
+
+```{r load, echo=False}
+gam_rmse = data.frame("ech" = rep(" ",22), "rmse" = rep(0,22))
+gam_rmse$ech = c("base",
+"ech_rep",
+"train",
+"ech_add",
+"ech_GN_SC",
+"GN_GMM",
+"ech_ROSE_SC",
+"ROSE_GMM",
+"kde_boot",
+"kde_boot_GMM",
+"kde_boot_cond",
+"GMM_cond",
+"FA_GMM",
+"FA_cond",
+"ech_copule_cond",
+"ech_ctganSynth_Y",
+"ech_RF",
+"ech_RF_cond",
+"ech_RF_GMM",
+"ech_smote",
+"ech_smote_GMM",
+"ech_smote_cond"
+) 
+
+gam_rmse_ref = data.frame("ech" = rep(" ",21), "rmse" = rep(0,21))
+gam_rmse_ref$ech = c("ech_rep",
+"train",
+"ech_add",
+"ech_GN_SC",
+"GN_GMM",
+"ech_ROSE_SC",
+"ROSE_GMM",
+"kde_boot",
+"kde_boot_GMM",
+"kde_boot_cond",
+"GMM_cond",
+"FA_GMM",
+"FA_cond",
+"ech_copule_cond",
+"ech_ctganSynth_Y",
+"ech_RF",
+"ech_RF_cond",
+"ech_RF_GMM",
+"ech_smote",
+"ech_smote_GMM",
+"ech_smote_cond"
+) 
+
+```
+
+
+# Dataset
+
+## Analysis
+
+```{r analyse, echo=FALSE}
+sapply(base0,class)
+base0$Duration=base0$Duration/366
+base0$tmd100 = round(base0$Total.miles.driven/100,0)*100
+summary(base0)
+```
+
+Histogramms of Total.miles.driven
+
+```{r histo, echo=FALSE}
+hist(base0$Total.miles.driven, breaks = 100)
+```
+
+
+## Modeling
+
+
+From the initial population $\mathcal{D}^p$, we construct a test sample, denoted by  $\mathcal{D}^t$, with a uniform draw.
+
+```{r echantillonnage1, echo=FALSE}
+n_ech = 10000 # size of the train sample
+if (relance == T){
+  ind_test = sample(nrow(base0),n_ech)
+  test = base0[ind_test,]
+  base = base0[-ind_test,]
+}
+```
+
+
+```{r resModel, echo=FALSE}
+if (relance == T){
+  resModelRef = function(dat,y_pred_ref){
+    agg = aggregate(NB_Claim~tmd100,dat,mean)
+    plot(agg$tmd100,agg$NB_Claim, col="blue")
+    agg = aggregate(yhat~tmd100,dat,mean)
+    points(agg$tmd100,agg$yhat, col="orange")
+  
+    agg = aggregate(NB_Claim~Insured.age,dat,mean)
+    plot(agg$Insured.age,agg$NB_Claim, col="blue")
+    agg = aggregate(yhat~Insured.age,dat,mean)
+    points(agg$Insured.age,agg$yhat, col="orange")
+  
+    agg = aggregate(NB_Claim~Credit.score,dat,mean)
+    plot(agg$Credit.score,agg$NB_Claim, col="blue")
+    agg = aggregate(yhat~Credit.score,dat,mean)
+    points(agg$Credit.score,agg$yhat, col="orange")
+  
+    agg = aggregate(NB_Claim~Years.noclaims,dat,mean)
+    plot(agg$Years.noclaims,agg$NB_Claim, col="blue")
+    agg = aggregate(yhat~Years.noclaims,dat,mean)
+    points(agg$Years.noclaims,agg$yhat, col="orange")
+  
+    ggplot() +
+    geom_point(alpha=0.05,aes(x=test$Total.miles.driven, y=y_pred_ref),colour="darkred", shape=20, size=2)+
+          stat_smooth(aes(x=test$Total.miles.driven, y=y_pred_ref,colour="pop"),method = loess, lwd=1.5)+
+        scale_color_manual(name = "dataset",values = c("pop" = "darkgreen")) +   theme(legend.position = c(.15, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"))
+  }
+}
+```
+
+
+###  GAM - poisson (without categorical covariate) with MGCV
+
+```{r predGAM_pop, echo=FALSE}
+if (relance == T){
+  dat = base
+  
+  # Model
+  reg = gam(NB_Claim ~  s(Insured.age) + Car.age + s(Total.miles.driven) + Credit.score + Years.noclaims, offset = log(Duration), data = dat, family = poisson())
+  reg_P = reg
+  
+  # Results
+  reg$aic
+  AIC(reg)
+  summary(reg)
+  plot(reg)
+  gam.check(reg)
+  
+  # predictions
+  dat$yhat = reg$fitted.values
+  y_pred_ref = predict(reg,test,type="response")
+  y_pred_ref_P = y_pred_ref
+  resModelRef(dat,y_pred_ref)
+}
+```
+
+###  GAM - ZIP (mixed covariate) avec MGCV
+
+```{r predGAM_pop, echo=FALSE}
+if (relance == T){  
+  dat = base
+  
+  # Model
+  reg = gam(NB_Claim ~  s(Insured.age) + Car.age + Car.use + Region + s(Total.miles.driven) + Credit.score + Years.noclaims, offset = log(Duration), data = dat, family = ziP())
+  reg_ZM = reg
+  
+  # Results
+  reg$aic
+  AIC(reg)
+  summary(reg)
+  plot(reg)
+  gam.check(reg)
+  
+  # predictions
+  dat$yhat = reg$fitted.values
+  y_pred_ref = predict(reg,test,type="response")
+  y_pred_ref_ZM = y_pred_ref
+  resModelRef(dat,y_pred_ref)
+}
+```
+
+
+###  GAM - ZIP (without categorical covariate) with MGCV
+
+```{r predGAM_pop, echo=FALSE}
+if (relance == T){
+  dat = base
+
+  # Model
+  reg = gam(NB_Claim ~  s(Insured.age) + Car.age + s(Total.miles.driven) + Credit.score + Years.noclaims, offset = log(Duration), data = dat, family = ziP())
+  reg_ZQ = reg
+
+  # Results
+  reg$aic
+  AIC(reg)
+  summary(reg)
+  plot(reg)
+  gam.check(reg)
+
+  # predictions
+  dat$yhat = reg$fitted.values
+  y_pred_ref = predict(reg,test,type="response")
+  y_pred_ref_ZQ = y_pred_ref
+  resModelRef(dat,y_pred_ref)
+}
+```
+
+
+###  GAM - ZIP (without categorical covariate) with PSCL
+
+```{r predGAM_pop, echo=FALSE}
+if (relance == T){
+  dat = base
+  
+  # Model
+  reg = zeroinfl(NB_Claim ~ bs(Insured.age, degree = 3) + Car.age + bs(Total.miles.driven,degree = 3) + Credit.score + Years.noclaims + offset(log(Duration)) | bs(Insured.age, degree = 3) + Car.age + bs(Total.miles.driven,degree = 3) + Credit.score + Years.noclaims + offset(log(Duration)) , data = dat, dist = "poisson", link = "logit")
+  reg_ZI = reg
+  
+  # Results
+  AIC(reg)
+  summary(reg)
+  
+  # predictions
+  dat$yhat = reg$fitted.values
+  y_pred_ref = predict(reg,test,type="response")
+  y_pred_ref_ZI = y_pred_ref
+  resModelRef(dat,y_pred_ref)
+}
+```
+
+### Optimization of GAM - ZIP according to AIC
+
+```{r predGAM_pop, echo=FALSE}
+if (relance == T){
+  dat = base
+  
+  # Model : optim AIC : degre splines
+  res = expand.grid(1:3,1:3,1:3,1:3)
+  res[,5] = rep(0,nrow(res))
+  for (i in (1:nrow(res))){
+          reg = zeroinfl(NB_Claim ~ bs(Insured.age, degree = res[i,1]) + Car.age + bs(Total.miles.driven,degree = res[i,2]) + Credit.score + Years.noclaims + offset(log(Duration)) | bs(Insured.age, degree = res[i,3]) + Car.age + bs(Total.miles.driven,degree = res[i,4]) + offset(log(Duration)) , data = dat, dist = "poisson", link = "logit")
+          res[i,5] = AIC(reg)
+  }
+  res[order(res$V5),]
+  beep(8)
+  
+  # model retenu : selection variables
+  reg = zeroinfl(NB_Claim ~ bs(Insured.age, degree = 3) + Car.age + bs(Total.miles.driven,degree = 2) + Credit.score + Years.noclaims + offset(log(Duration)) | bs(Insured.age, degree = 2) + Car.age + bs(Total.miles.driven,degree = 3) + offset(log(Duration)) , data = dat, dist = "poisson", link = "logit")
+    reg_ZIs = reg
+  
+  # Results
+  AIC(reg)
+  summary(reg)
+  
+  # predictions
+  dat$yhat = reg$fitted.values
+  y_pred_ref = predict(reg,test,type="response")
+  y_pred_ref_ZIs = y_pred_ref
+  resModelRef(dat,y_pred_ref)
+}
+```
+
+### Random forest
+
+```{r predRF_pop, echo=FALSE}
+if (relance == T){
+  dat = base
+  
+  # Predictions
+  reg = randomForest( NB_Claim ~ Insured.age + Car.age + Total.miles.driven + Credit.score + Years.noclaims + Duration , data = dat)# , weights = q)
+  
+  h2o.init()
+  reg = h2o.randomForest(x=c("Insured.age" , "Car.age", "Total.miles.driven", "Credit.score", "Years.noclaims"),y="NB_Claim", offset_column ="Duration",training_frame= as.h2o(dat), ntrees = 500)
+  
+  reg_RF = reg
+  
+  # Results
+  summary(reg) 
+  
+  # predictions
+  dat$yhat = as.vector(h2o.predict(reg,as.h2o(dat)))
+  y_pred_ref = as.vector(h2o.predict(reg,as.h2o(test)))
+  y_pred_ref_RF = y_pred_ref
+  resModelRef(dat,y_pred_ref)
+}
+```
+
+
+```{r recap}
+if (relance == T){
+  AIC(reg_P)
+  AIC(reg_ZM)
+  AIC(reg_ZQ)
+  AIC(reg_ZI)
+  AIC(reg_ZIs)
+  
+  rmse(test$NB_Claim,y_pred_ref_P)*100 
+  rmse(test$NB_Claim,y_pred_ref_ZM)*100
+  rmse(test$NB_Claim,y_pred_ref_ZQ)*100
+  rmse(test$NB_Claim,y_pred_ref_ZI)*100
+  rmse(test$NB_Claim,y_pred_ref_ZIs)*100 
+  rmse(test$NB_Claim,y_pred_ref_RF)*100 
+}
+```
+
+###  Model Selection
+
+```{r defFonc, echo = FALSE}
+
+modelApp =function(dat) {
+gam(Y ~  s(Insured.age) + Car.age + s(X) + Credit.score + Years.noclaims, offset = log(Duration), data = dat, family = ziP())
+}
+
+graph_Y = function (ech_synth,name_synth){ 
+  # Y Analysis
+  print(ggplot() +
+    geom_point(alpha=0.2,aes(x=test$X, y=y_pred, colour="pred"), shape=20, size=1) +
+      stat_smooth(aes(x=test$X, y=y_pred,colour="pred"),method = loess, lwd=1.5)+
+      stat_smooth(aes(x=test$X, y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+      stat_smooth(aes(x=test$X, y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+    geom_point(alpha=0.05,aes(x=test$X, y=y_pred_ref),colour="chartreuse4", shape=20, size=1)+
+      stat_smooth(aes(x=test$X, y=y_pred_ref,colour="pop"),method = loess, lwd=1.5)+
+    scale_color_manual(name = "dataset",values = c("pred" = "deepskyblue4", "pop" = "darkgreen", "conf_int" = "deepskyblue3")) +   theme(legend.position = c(.15, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"))) +
+    labs(x = "X") +
+    labs(y = "Y")
+  ggsave(paste0("Sorties/comp_Y_",name_synth,"-vs-pop.png"),width=7.29, height=4.5)
+}
+
+resModelRef = function(dat,y_pred_ref){
+
+  agg = aggregate(Y~Insured.age,dat,mean)
+  plot(agg$Insured.age,agg$Y, col="blue") 
+  agg = aggregate(yhat~Insured.age,dat,mean)
+  points(agg$Insured.age,agg$yhat, col="orange") 
+  
+  agg = aggregate(Y~Credit.score,dat,mean)
+  plot(agg$Credit.score,agg$Y, col="blue") 
+  agg = aggregate(yhat~Credit.score,dat,mean)
+  points(agg$Credit.score,agg$yhat, col="orange") 
+  
+  agg = aggregate(Y~Years.noclaims,dat,mean)
+  plot(agg$Years.noclaims,agg$Y, col="blue") 
+  agg = aggregate(yhat~Years.noclaims,dat,mean)
+  points(agg$Years.noclaims,agg$yhat, col="orange") 
+  
+  ggplot() +
+  geom_point(alpha=0.05,aes(x=test$X, y=y_pred_ref),colour="darkred", shape=20, size=2)+
+        stat_smooth(aes(x=test$X, y=y_pred_ref,colour="pop"),method = loess, lwd=1.5)+
+      scale_color_manual(name = "dataset",values = c("pop" = "darkgreen")) +   theme(legend.position = c(.15, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"))
+}
+
+```
+
+## features redefinition
+
+```{r renomVar, echo = FALSE}
+filtre_var = c("X","Insured.age","Car.age","Credit.score","Years.noclaims","Duration","Y")
+
+if (relance == T){
+  test$X = test$Total.miles.driven
+  test$Y = test$NB_Claim
+  base_init = base
+  base$X = base$Total.miles.driven
+  base$Y = base$NB_Claim
+  test = test[, filtre_var]
+  base = base[, filtre_var]
+}
+```
+
+
+```{r modelRes, echo=FALSE}
+dat = base
+
+reg_ref = modelApp(dat)
+
+# Results
+AIC(reg_ref)
+summary(reg_ref)
+
+# predictions
+dat$yhat = reg_ref$fitted.values 
+y_pred_ref = predict(reg_ref,test,type="response")
+resModelRef(dat,y_pred_ref)
+# Indicators
+k_rmse = which(gam_rmse$ech == "base")
+gam_rmse$rmse[k_rmse] = rmse(test$Y,y_pred_ref)*100
+```
+
+
+## Sampling
+
+As with the illustration, we defined three samples from population $\mathcal{D}^p$ of size $n^p=100,000$ : balanced, imbalanced and test, all of a size $n=10,000$. The test sample $\mathcal{D}^t$ is uniformly drawn such as all observations in population have the same drawing weight ($\frac{1}{n^p}$). The balanced sample is then drawn uniformly (with a probability equal to $\frac{1}{n^p - n}$) from the remaining population ($\mathcal{D}^p$ \textbackslash $\mathcal{D}^t$).
+
+
+```{r echantillonnage1, echo=FALSE}
+if (relance == T){
+  ech_rep = base[sample(nrow(base),n_ech),]
+}
+hist(ech_rep$X, breaks=100)
+```
+
+The imbalanced sample is defined according to $X$, \textit{total miles driven}, such as: the larger $X$ is the smaller the drawing weight is. We want to get a more asymmetric distribution than the population with fewer observations after 10,000 miles. 
+More precisely, the proposed drawing weight to construct the imbalanced sample is  defined by a Gaussian distribution $\mathcal{N}(2000,6000)$. The distribution obtained has very few values above 10,000 miles.
+
+```{r echantillonnage2, echo=FALSE}
+if (relance == T){
+  train = base[sample(nrow(base),n_ech,prob=dnorm(base$X,2000,6000)),]
+}
+
+# Graphical analysis
+fig <- plot_ly(alpha = 1)
+fig <- fig %>% add_histogram(x = ~train$X,histnorm = "probability")
+fig <- fig %>% add_histogram(x = ~ech_rep$X,histnorm = "probability")
+fig
+
+df_train=data.frame(train$X,rep("imb",length(train$X)))
+df_test=data.frame(base$X,rep("pop",length(base$X)))
+colnames(df_train)=c("X","dataset")
+colnames(df_test)=c("X","dataset")
+df = rbind(df_train,df_test)
+
+ggplot(df, aes(X, color=dataset, fill=dataset)) + 
+  geom_histogram(alpha = 0.5, aes(y = ..density..),position = 'identity',bins=100)+geom_density(alpha=0.1)+
+  scale_color_manual(values=c("darkred","azure4"))+
+  scale_fill_manual(values=c("darkred","azure4"))+
+  theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"))
+ggsave("Sorties/comp_X_Ech0-vs-Pop-Dens.png",width=7.29, height=4.5)
+
+ggplot(df, aes(X, color=dataset, fill=dataset)) + 
+  geom_histogram(alpha = 0.5, aes(y = ..density..),position = 'identity',bins=100)+
+  scale_color_manual(values=c("darkred","azure4"))+
+  scale_fill_manual(values=c("darkred","azure4"))+
+  theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"))
+ggsave("Sorties/comp_X_Ech0-vs-Pop.png",width=7.29, height=4.5)
+
+
+```
+
+
+## Predictions impact
+
+### Balanced sample
+
+```{r predGAM_ech_rep, echo=FALSE}
+dat = ech_rep
+dat_name = "ech_rep"
+
+# Predictions
+reg = modelApp(dat)
+reg_rep = reg
+
+# Results
+reg$aic 
+AIC(reg)
+summary(reg)
+plot(reg)
+#gam.check(reg)
+
+# predictions
+dat$yhat = reg$fitted.values
+
+p = predict(reg,test, se.fit = TRUE,type="response")
+upr <- p$fit + (2 * p$se.fit) 
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+plot(y_pred_ref,y_pred)
+resModelRef(dat,y_pred)
+
+# Indicators
+k_rmse = which(gam_rmse$ech == dat_name)
+gam_rmse$rmse[k_rmse] = rmse(test$Y,y_pred)*100
+k_rmse = which(gam_rmse_ref$ech == dat_name)
+gam_rmse_ref$rmse[k_rmse] = rmse(y_pred_ref,y_pred)*100
+
+# Graphics
+plot(test$X,y_pred)
+points(test$X, y_pred_ref, col='green3')
+
+ggplot() + 
+  geom_point(alpha = 0.5,aes(x=test$X, y=y_pred_ref, colour="pop")) + 
+  geom_point(alpha = 0.5,aes(x=test$X, y=y_pred, colour="imb"))+
+  scale_color_manual(name = "dataset",values = c("pop" = "darkgreen", "imb" = "darkred")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"))
+ggsave("Sorties/comp_Y_EchRep-vs-Pop.png",width=7.29, height=4.5)
+
+
+# Graphics
+graph_Y = function (ech_synth,name_synth){
+  print(ggplot() +
+    geom_point(alpha=0.2,aes(x=test$X, y=y_pred, colour="pred"), shape=20, size=1) +
+      stat_smooth(aes(x=test$X, y=y_pred,colour="pred"),method = loess, lwd=1.5)+
+      stat_smooth(aes(x=test$X, y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+      stat_smooth(aes(x=test$X, y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+    geom_point(alpha=0.05,aes(x=test$X, y=y_pred_ref),colour="chartreuse4", shape=20, size=1)+
+      stat_smooth(aes(x=test$X, y=y_pred_ref,colour="pop"),method = loess, lwd=1.5)+
+    scale_color_manual(name = "dataset",values = c("pred" = "deepskyblue4", "pop" = "darkgreen", "conf_int" = "deepskyblue3")) +   theme(legend.position = c(.15, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold")) +
+    labs(x = "X") +
+    labs(y = "E(Y|X)") + ylim(-0.2,0.4))
+  ggsave(paste0("Sorties/comp_Y_",name_synth,"-vs-pop.png"),width=7.29, height=4.5)
+}
+
+graph_Y(dat,"ech_rep")
+
+```
+
+
+### Imbalanced sample
+
+```{r predGAM_ech_rep, echo=FALSE}
+dat = train
+dat_name = "train"
+
+# Predictions
+reg = modelApp(dat)
+reg_train = reg
+
+# Results
+reg$aic 
+AIC(reg)
+summary(reg)
+plot(reg)
+#gam.check(reg)
+
+# predictions
+dat$yhat = reg$fitted.values
+
+p = predict(reg,test, se.fit = TRUE,type="response")
+upr <- p$fit + (2 * p$se.fit) 
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+plot(y_pred_ref,y_pred)
+resModelRef(dat,y_pred)
+
+# Indicators
+k_rmse = which(gam_rmse$ech == dat_name)
+gam_rmse$rmse[k_rmse] = rmse(test$Y,y_pred)*100
+k_rmse = which(gam_rmse_ref$ech == dat_name)
+gam_rmse_ref$rmse[k_rmse] = rmse(y_pred_ref,y_pred)*100
+
+
+# Graphics
+plot(test$X,y_pred)
+points(test$X, y_pred_ref, col='green3')
+
+plot(test$X,y_pred)
+points(test$X, y_pred_ref, col='green3')
+
+ggplot() + 
+  geom_point(alpha = 0.5,aes(x=test$X, y=y_pred_ref, colour="pop")) + 
+  geom_point(alpha = 0.5,aes(x=test$X, y=y_pred, colour="imb"))+
+  scale_color_manual(name = "dataset",values = c("pop" = "darkgreen", "imb" = "darkred")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold")) 
+ggsave("Sorties/comp_Y_Ech0-vs-Pop.png",width=7.29, height=4.5)
+
+graph_Y(dat,"ech0")
+
+```
+
+
+```{r}
+gam_rmse
+gam_rmse_ref
+```
+
+
+# Sample adjustment
+
+## Weighted Resampling (WR) algorithm
+
+Target distribution
+
+```{r def_tgt, echo=False}
+Pt = function(x){
+  f_cible = density(base$X,n=length(base$X))
+  res = approx(f_cible$x,f_cible$y,xout=x)$y
+  res[is.na(res)]=0
+  res = res * (x>=0)
+  res = res/sum(res)
+  return(res)
+}
+
+```
+
+Graphical analysis
+
+```{r histInit_cible , echo=FALSE}
+hist(train$X,breaks=100, col = "antiquewhite",freq=F,right = T,xlab = "X (ini)",main = "Histogram of X (ini)")
+points(train$X,Pt(train$X),col="red")
+lines(density(train$X),col="black",lwd=2)
+
+ggplot(train, aes(X)) + 
+  geom_histogram(alpha = 0.5, aes(y = ..density..,color= "imb"),position = 'identity',bins = 100, fill="darkred")+
+  geom_density(alpha=0.5, fill = "darkred")+
+  geom_line(aes(y=Pt(train$X),colour="f0"), lwd=1,linetype = 1)+
+  scale_color_manual(name = "dataset",values = c("f0" = "darkgreen", "imb" = "darkred")) +
+  theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"))+
+  xlab("X")
+ggsave("Sorties/Hist_X_Ech0-vs-Tgt.png",width=7.29, height=4.5)
+
+
+```
+
+Resampling weights definition
+
+```{r WB , echo=FALSE}
+
+ech = train
+X = ech$X
+pe = density(X,n=length(X))
+pe = approx(pe$x,pe$y,xout=ech$X)$y
+pt = Pt(X)
+w = pt / pe
+q = w / sum(w)
+ech0=ech
+
+# Graphical analysis
+ggplot(ech, aes(x=X)) + geom_point(aes(y=q), colour="darkred") + labs(y = "weight")
+ggsave("Sorties/weights-ech0.png",width=7.29, height=4.5)
+```
+
+Drawing
+
+```{r Drawing , echo=FALSE}
+if (relance == T){
+  ech_add = sample(seq(1, nrow(ech)),n_ech,replace=T,prob = q)
+  ech_add = ech[ech_add,]
+}
+```
+
+Graphical analysis
+
+```{r histWB_cible , echo=FALSE}
+hist(ech_add$X,breaks=50, col = "antiquewhite",freq=F,right = T,xlab = "X (ech_aug)",main = "Histogram of X (ech_aug)")
+points(ech$X,Pt(ech$X),col="red")
+lines(density(ech_add$X),col="black",lwd=2)
+
+graph_X = function (ech_synth,name_synth){
+  print(ggplot(ech_synth, aes(X)) + 
+    geom_histogram(alpha = 0.5, aes(y = ..density..,color= "new"),position = 'identity',bins=100, fill="darkred")+
+    geom_density(alpha=0.5, fill = "darkred")+
+    geom_line(aes(y=Pt(ech_synth$X),colour="f0"), lwd=1,linetype = 1)+
+    scale_color_manual(name = "dataset",values = c("f0" = "darkgreen", "new" = "darkred")) +
+    theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"))+xlab("X"))
+  ggsave(paste0("Sorties/Hist_X_",name_synth,"-vs-Tgt.png"),width=7.29, height=4.5)
+  
+  
+  if (name_synth != "ech_add"){
+    df_add=data.frame(ech_add$X,rep("WR",length(ech_add$X)))
+    df_synth=data.frame(ech_synth$X,rep("new",length(ech_synth$X)))
+    colnames(df_add)=c("X","dataset")
+    colnames(df_synth)=c("X","dataset")
+    df = rbind(df_add,df_synth)
+    print(ggplot(df, aes(X, color=dataset, fill=dataset)) + 
+      geom_histogram(alpha = 0.5, aes(y = ..density..),position = 'identity',bins=100)+
+      scale_color_manual(values=c("darkred","deepskyblue4"))+
+      scale_fill_manual(values=c("darkred","deepskyblue4"))+
+      theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),
+            legend.title = element_text(face = "bold"))+xlab("X"))
+    ggsave(paste0("Sorties/Hist_X_",name_synth,"-vs-ech_add.png"),width=7.29, height=4.5)
+  }
+  
+}
+graph_X(ech_add,"ech_add")
+
+```
+
+
+
+```{r predGAM_ech_add, echo=FALSE}
+dat = ech_add
+name_synth = "ech_add"
+
+# Predictions
+reg_train = modelApp(dat)
+
+summary(reg_train)
+plot(reg_train)
+#gam.check(reg_train)
+
+p = predict(reg_train,test, se.fit = TRUE, type = "response")
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+plot(y_pred_ref,y_pred)
+
+# Indicators
+k_rmse = which(gam_rmse$ech == name_synth)
+gam_rmse$rmse[k_rmse] = rmse(test$Y,y_pred)*100
+k_rmse = which(gam_rmse_ref$ech == name_synth)
+gam_rmse_ref$rmse[k_rmse] = rmse(y_pred_ref,y_pred)*100
+
+print(plot(test$X,y_pred))
+print(points(test$X, y_pred_ref, col='green3'))
+
+graph_Y(dat,name_synth)
+
+ 
+
+```
+
+
+
+```{r}
+gam_rmse
+gam_rmse_ref
+```
+
+
+
+## Data Augmentation - Weighted Resampling algorithm
+
+### Generation by random noise
+
+### Gaussian Noise (GN)
+
+**Gaussian Noise on the augmented dataset and application of WR algorithm**
+
+
+```{r GN, echo=FALSE}
+if (relance == T){
+  ## Approche GN (cf fonction Gn.exsClassif : https://rdrr.io/github/paobranco/UBL/src/R/gaussNoiseClassif.R
+  N = 100000
+  pert = 0.3 # proportion de l'EC prise en compte pour le bruitage : pourrait être estimer par rapport à la cible
+  
+  for (tir in seq(round(N/nrow(ech_add)))){
+    ech_GN=ech_add
+    for (j in (1:ncol(ech_add))) {
+      if (colnames(ech0)[j] != "Duration"){
+        ech_GN[, j] = ech_add[, j] + rnorm(nrow(ech_add), 0, sd(ech0[,colnames(ech0)[j]]) * pert)
+      }
+    }
+    if (tir==1){
+      ech_GN_SC = ech_GN
+    }else{
+      ech_GN_SC = rbind(ech_GN_SC,ech_GN)
+    }
+  }
+  
+  # Drawing weight
+  X = ech_GN_SC$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=ech_GN_SC$X)$y
+  pt = Pt(X)
+  pt[is.na(pt)]=0
+  w = pt / pe
+  q = w / sum(w)
+  
+  # Drawing
+  ind = sample(seq(1, nrow(ech_GN_SC)),n_ech,replace=T,prob = q)
+  ech_GN_SC = ech_GN_SC[ind,filtre_var]
+}
+```
+
+
+Graphical analysis
+
+
+```{r GN2, echo=FALSE}
+hist(ech_GN_SC$X,breaks=100, col = "antiquewhite",freq=F,right = T,xlab = "X (ech_GN_SC)",main = "Histogram of X (ech_GN_SC)")
+points(ech_GN_SC$X,Pt(ech_GN_SC$X),col="red")
+lines(density(ech_GN_SC$X),col="black",lwd=2)
+
+hist(ech_GN_SC$X, col=rgb(0,0,1,1/4),breaks = 100, prob=T,)  
+hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 50, prob=T, add=T) 
+
+
+graph_X(ech_GN_SC,"ech_GN_SC")
+
+```
+
+
+```{r GN-AnalyseY, echo=FALSE}
+# Y Analysis
+plot(ech_GN_SC$X,ech_GN_SC$Y)
+points(ech0$X,ech0$Y,col="red")
+
+#Comme attendu, ici bruiter Y n'a pas de sens car est discret. Il faut arrondir Y...  ce qui au final ne le changeras pas de la graine 
+ech_GN_SC$Y = round(ech_GN_SC$Y,0)
+
+
+```
+
+
+```{r predGAM_ech_GN_SC, echo=FALSE}
+dat = ech_GN_SC
+name_synth = "ech_GN_SC"
+
+# Predictions
+reg_train = modelApp(dat)
+
+summary(reg_train)
+plot(reg_train)
+#gam.check(reg_train)
+
+p = predict(reg_train,test, se.fit = TRUE, type = "response")
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+plot(y_pred_ref,y_pred)
+
+# Indicators
+k_rmse = which(gam_rmse$ech == name_synth)
+gam_rmse$rmse[k_rmse] = rmse(test$Y,y_pred)*100
+k_rmse = which(gam_rmse_ref$ech == name_synth)
+gam_rmse_ref$rmse[k_rmse] = rmse(y_pred_ref,y_pred)*100
+
+print(plot(test$X,y_pred))
+print(points(test$X, y_pred_ref, col='green3'))
+
+graph_Y(dat,name_synth)
+
+
+```
+
+
+**Gaussian Noise on the augmented dataset, by cluster and application of WR algorithm**
+
+
+```{r GN-GMM, include=FALSE}
+if (relance == T){
+  # Approche post-clustering : clustering par GMM puis GN/cluster
+  N = 100000
+  DMC = densityMclust(ech0, plot=F,G=2:6)
+  ech_MC = cbind(ech0,"cluster" = DMC$classification)
+  cl = max(ech_MC$cluster)
+  for (tir in seq(round(N/nrow(ech_add)))){
+    for (i in (1:cl)){
+        temp = ech_MC[ech_MC$cluster == i,]
+        ech_add_temp = merge(temp, ech_add, on ="X")
+        N = nrow(ech_add_temp)
+        ech_GN=ech_add_temp
+        for (j in (1:ncol(ech_add_temp))) {
+          if (colnames(ech_add_temp)[j] != "Duration"){
+              ech_GN[, j] = ech_add_temp[, j] +
+                rnorm(nrow(ech_add_temp), 0, sd(temp[,colnames(temp)[j]]) * pert)
+          }
+        }
+        if (tir==1 & i==1){
+          GN_GMM = ech_GN
+        }else{
+          GN_GMM = rbind(GN_GMM,ech_GN)
+        }
+    }
+  }
+  
+  # Drawing weight
+  X = GN_GMM$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=GN_GMM$X)$y
+  pt = Pt(X)
+  pt[is.na(pt)]=0
+  w = pt / pe
+  q = w / sum(w)
+  # Drawing
+  ind = sample(seq(1, nrow(GN_GMM)),n_ech,replace=T,prob = q)
+  GN_GMM = GN_GMM[ind,filtre_var]
+}
+
+```
+
+Graphical analysis
+
+```{r GN-GMM2, echo=FALSE}
+# Graphical analysis
+hist(GN_GMM$X,breaks=100, col = "antiquewhite",freq=F,right = T,xlab = "X (GN_GMM)",main = "Histogram of X (GN_GMM)")
+points(GN_GMM$X,Pt(GN_GMM$X),col="red")
+lines(density(GN_GMM$X),col="black",lwd=2)
+
+hist(GN_GMM$X, col=rgb(0,0,1,1/4),breaks = 100, prob=T,)  
+hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 50, prob=T, add=T) 
+
+GN_GMM$Y = round(GN_GMM$Y,0)
+
+# Y Analysis
+plot(GN_GMM$X,GN_GMM$Y)
+points(ech0$X,ech0$Y,col="red")
+
+graph_X(GN_GMM,"GN_GMM")
+
+```
+
+```{r predGAM_GN_GMM, echo=FALSE}
+dat = GN_GMM
+name_synth = "GN_GMM"
+
+# Predictions
+reg_train = modelApp(dat)
+
+summary(reg_train)
+plot(reg_train)
+#gam.check(reg_train)
+
+p = predict(reg_train,test, se.fit = TRUE, type = "response")
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+plot(y_pred_ref,y_pred)
+
+# Indicators
+k_rmse = which(gam_rmse$ech == name_synth)
+gam_rmse$rmse[k_rmse] = rmse(test$Y,y_pred)*100
+k_rmse = which(gam_rmse_ref$ech == name_synth)
+gam_rmse_ref$rmse[k_rmse] = rmse(y_pred_ref,y_pred)*100
+
+print(plot(test$X,y_pred))
+print(points(test$X, y_pred_ref, col='green3'))
+
+graph_Y(dat,name_synth)
+
+```
+
+
+
+
+### Multivariate kernel density estimator (ROSE & KDE)
+
+*Estimator inspired by ROSE*
+
+```{r ROSE, echo=FALSE}
+if (relance == T){
+  ## Approche ROSE // Smooth bootstrap (retravail plus bas)
+  # ATTENTION au surapparentissage si travail avec ech_add...
+  # ATTENTION : calibrage sur ech0 mais bruitage de ech_add : algo retouché
+  # code de generation du rose
+  hmult=1
+  n = nrow(ech0)
+  q = ncol(ech0)
+  n.new <- nrow(ech_add)
+  cons.kernel <- (4/((q+2)*n))^(1/(q+4))
+  if(q!=1){
+    H <- hmult*cons.kernel*diag(apply(ech0, 2, sd), q)
+  }else {
+    H <- hmult*cons.kernel*sd(ech0)}
+  Xnew.num <- matrix(rnorm(n.new*q), n.new, q)%*%H
+  ech_ROSE_SC =data.frame(Xnew.num + ech_add)
+  
+  
+  # Drawing weight
+  X = ech_ROSE_SC$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=ech_ROSE_SC$X)$y
+  pt = Pt(X)
+  pt[is.na(pt)]=0
+  w = pt / pe
+  q = w / sum(w)
+  # Drawing
+  ind = sample(seq(1, nrow(ech_ROSE_SC)),n_ech,replace=T,prob = q)
+  ech_ROSE_SC = ech_ROSE_SC[ind,filtre_var]
+}
+```
+  
+  
+Graphical analysis
+  
+```{r ROSE_graph, echo=FALSE}
+  
+# Graphical analysis
+hist(ech_ROSE_SC$X,breaks=100, col = "antiquewhite",freq=F,right = T,xlab = "X (ech_ROSE_SC)",main = "Histogram of X (ech_ROSE_SC)")
+points(ech_ROSE_SC$X,Pt(ech_ROSE_SC$X),col="red")
+lines(density(ech_ROSE_SC$X),col="black",lwd=2)
+
+hist(ech_ROSE_SC$X, col=rgb(0,0,1,1/4),breaks = 100, prob=T,) 
+hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 50, prob=T, add=T) 
+
+ech_ROSE_SC$Y = round(ech_ROSE_SC$Y,0)
+
+# Y Analysis
+plot(ech_ROSE_SC$X,ech_ROSE_SC$Y)
+points(ech0$X,ech0$Y,col="red")
+
+
+graph_X(ech_ROSE_SC,"ech_ROSE_SC")
+```
+
+
+```{r predGAM_ech_ROSE_SC, echo=FALSE}
+dat = ech_ROSE_SC
+name_synth = "ech_ROSE_SC"
+
+# Predictions
+reg_train = modelApp(dat)
+
+summary(reg_train)
+plot(reg_train)
+#gam.check(reg_train)
+
+p = predict(reg_train,test, se.fit = TRUE, type = "response")
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+plot(y_pred_ref,y_pred)
+
+# Indicators
+k_rmse = which(gam_rmse$ech == name_synth)
+gam_rmse$rmse[k_rmse] = rmse(test$Y,y_pred)*100
+k_rmse = which(gam_rmse_ref$ech == name_synth)
+gam_rmse_ref$rmse[k_rmse] = rmse(y_pred_ref,y_pred)*100
+
+print(plot(test$X,y_pred))
+print(points(test$X, y_pred_ref, col='green3'))
+
+graph_Y(dat,name_synth)
+```
+
+
+Application by cluster
+
+```{r ROSE_GMM, echo=FALSE}
+if (relance == T){
+  # Approche par clustering
+  N = 100000
+  DMC = densityMclust(ech0, plot=F,G=2:6) # ATTENTION !!! fixe G=3 pour que ça marche mieux mais en théorie recherche
+  ech_MC = cbind(ech0,"cluster" = DMC$classification)
+  ech_add_MC = merge(ech_MC, ech_add, on = filtre_var)
+  cl = max(ech_MC$cluster)
+  
+  for (tir in seq(round(N/nrow(ech_add)))){
+    for (i in (1:cl)){
+        temp = ech_MC[ech_MC$cluster == i,]
+        temp_add = ech_add_MC[ech_add_MC$cluster == i,]
+        n = nrow(temp)
+        q = ncol(temp)
+        n.new <- nrow(temp_add)
+        cons.kernel <- (4/((q+2)*n))^(1/(q+4))
+        if(q!=1){
+          H <- hmult*cons.kernel*diag(apply(temp, 2, sd), q)
+        }else {
+          H <- hmult*cons.kernel*sd(temp)}
+        Xnew.num <- matrix(rnorm(n.new*q), n.new, q)%*%H
+        ech_ROSE =data.frame(Xnew.num + temp_add)
+        if (tir == 1 & i == 1) {
+        ROSE_GMM = ech_ROSE
+      } else {ROSE_GMM = rbind(ROSE_GMM, ech_ROSE)}
+    }
+  }
+  
+  
+  # Drawing weight
+  X = ROSE_GMM$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=ROSE_GMM$X)$y
+  pt = Pt(X)
+  pt[is.na(pt)]=0
+  w = pt / pe
+  q = w / sum(w)
+  # Drawing
+  ind = sample(seq(1, nrow(ROSE_GMM)),n_ech,replace=T,prob = q)
+  ROSE_GMM = ROSE_GMM[ind,filtre_var]
+}
+
+```
+
+Graphical analysis
+
+```{r ROSE_GMM_res, echo=FALSE}
+# Graphical analysis
+hist(ROSE_GMM$X,breaks=100, col = "antiquewhite",freq=F,right = T,xlab = "X (ROSE_GMM)",main = "Histogram of X (ROSE_GMM)")
+points(ROSE_GMM$X,Pt(ROSE_GMM$X),col="red")
+lines(density(ROSE_GMM$X),col="black",lwd=2)
+
+hist(ROSE_GMM$X, col=rgb(0,0,1,1/4),breaks = 100, prob=T,)  
+hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 50, prob=T, add=T) 
+
+ROSE_GMM$Y = round(ROSE_GMM$Y,0)
+
+# Y Analysis
+plot(ROSE_GMM$X,ROSE_GMM$Y)
+points(ech0$X,ech0$Y,col="red")
+
+graph_X(ROSE_GMM,"ROSE_GMM")
+
+```
+
+
+
+```{r predGAM_ROSE_GMM, echo=FALSE}
+dat = ROSE_GMM
+name_synth = "ROSE_GMM"
+
+# Predictions
+reg_train = modelApp(dat)
+
+summary(reg_train)
+plot(reg_train)
+#gam.check(reg_train)
+
+p = predict(reg_train,test, se.fit = TRUE, type = "response")
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+plot(y_pred_ref,y_pred)
+
+# Indicators
+k_rmse = which(gam_rmse$ech == name_synth)
+gam_rmse$rmse[k_rmse] = rmse(test$Y,y_pred)*100
+k_rmse = which(gam_rmse_ref$ech == name_synth)
+gam_rmse_ref$rmse[k_rmse] = rmse(y_pred_ref,y_pred)*100
+
+print(plot(test$X,y_pred))
+print(points(test$X, y_pred_ref, col='green3'))
+
+graph_Y(dat,name_synth)
+```
+
+
+```{r}
+gam_rmse
+gam_rmse_ref
+```
+
+
+*Smoothed Bootstrap (KDE)*
+
+```{r smoothedbootstrap, echo=FALSE}
+if (relance == T){
+  X = ech0$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=ech0$X)$y
+  pt = Pt(X)
+  pt[is.na(pt)]=0
+  w = pt / pe
+  q = w / sum(w)
+  
+  kde_boot = data.frame(rmvg(100000, ech0, weights =  q))
+  
+  X = kde_boot$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=kde_boot$X)$y
+  pt = Pt(X)
+  pt[is.na(pt)]=0
+  w = pt / pe
+  q = w / sum(w)
+  ind = sample(seq(1, nrow(kde_boot)),n_ech,replace=T,prob = q)
+  kde_boot = kde_boot[ind,filtre_var]
+}
+```
+
+
+Graphical analysis
+
+```{r smoothedbootstrap_graph, echo=FALSE}
+# Graphical analysis
+hist(kde_boot$X,breaks=100, col = "antiquewhite",freq=F,right = T,xlab = "X (kde_boot)",main = "Histogram of X (kde_boot)")
+points(kde_boot$X,Pt(kde_boot$X),col="red")
+lines(density(kde_boot$X),col="black",lwd=2)
+
+hist(kde_boot$X, col=rgb(0,0,1,1/4),breaks = 100, prob=T,)  
+hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 50, prob=T, add=T) 
+
+kde_boot$Y = round(kde_boot$Y,0)
+
+# Y Analysis
+plot(kde_boot$X,kde_boot$Y)
+points(ech0$X,ech0$Y,col="red")
+
+graph_X(kde_boot,"kde_boot")
+
+```
+
+
+```{r predGAM_kde_boot, echo=FALSE}
+dat = kde_boot
+name_synth = "kde_boot"
+
+# Predictions
+reg_train = modelApp(dat)
+
+summary(reg_train)
+plot(reg_train)
+#gam.check(reg_train)
+
+p = predict(reg_train,test, se.fit = TRUE, type = "response")
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+plot(y_pred_ref,y_pred)
+
+# Indicators
+k_rmse = which(gam_rmse$ech == name_synth)
+gam_rmse$rmse[k_rmse] = rmse(test$Y,y_pred)*100
+k_rmse = which(gam_rmse_ref$ech == name_synth)
+gam_rmse_ref$rmse[k_rmse] = rmse(y_pred_ref,y_pred)*100
+
+print(plot(test$X,y_pred))
+print(points(test$X, y_pred_ref, col='green3'))
+
+graph_Y(dat,name_synth)
+```
+
+
+Analysis of clustering
+
+```{r clustering}
+# Résultats du clustering
+DMC = densityMclust(ech0, plot=F,G=2:6)  
+ech_MC = cbind(ech0,"cluster" = DMC$classification)
+ggplot(ech_MC, aes(x=X, y=Y, color=cluster)) + geom_point()
+table(ech_MC$cluster)
+```
+
+
+
+```{r smoothedbootstrap2, echo=FALSE}
+if (relance == T){
+  # Drawing weight
+  X = ech0$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=ech0$X)$y
+  pt = Pt(X)
+  pt[is.na(pt)]=0
+  w = pt / pe
+  q = w / sum(w)
+
+  ech_add_MC = merge(ech_MC, ech_add, on = filtre_var)
+
+  N = 100000
+  cl = max(ech_MC$cluster)
+  for (tir in seq(round(N/nrow(ech_add)))){
+    for (i in (1:cl)){
+      temp = data.frame(rmvg(n=sum(ech_add_MC$cluster == i), y=ech_MC[ech_MC$cluster == i,], weights =  q[ech_MC$cluster==i]))
+      if (tir == 1 & i ==1) {
+      kde_boot_GMM = temp
+    } else {kde_boot_GMM = rbind(kde_boot_GMM, temp)}
+    }
+  }
+
+  # Drawing weight
+  X = kde_boot_GMM$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=kde_boot_GMM$X)$y
+  pt = Pt(X)
+  pt[is.na(pt)]=0
+  w = pt / pe
+  q = w / sum(w)
+  # Drawing
+  ind = sample(seq(1, nrow(kde_boot_GMM)),n_ech,replace=T,prob = q)
+  kde_boot_GMM = kde_boot_GMM[ind,filtre_var]
+}
+```
+
+Graphical analysis
+
+```{r smoothedbootstrap2, echo=FALSE}
+if (exists("kde_boot_GMM")){
+  hist(kde_boot_GMM$X,breaks=100, col = "antiquewhite",freq=F,right = T,xlab = "X (kde_boot_GMM)",main = "Histogram kde_boot_GMM X (kde_boot_GMM)")
+  points(kde_boot_GMM$X,Pt(kde_boot_GMM$X),col="red")
+  lines(density(kde_boot_GMM$X),col="black",lwd=2)
+  
+  hist(kde_boot_GMM$X, col=rgb(0,0,1,1/4),breaks = 100, prob=T,) 
+  hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 50, prob=T, add=T) 
+  
+  kde_boot_GMM$Y = round(kde_boot_GMM$Y,0)
+  
+  # Y Analysis
+  plot(kde_boot_GMM$X,kde_boot_GMM$Y)
+  points(ech0$X,ech0$Y,col="red")
+  
+  
+  graph_X(kde_boot_GMM,"kde_boot_GMM")
+}
+```
+
+
+```{r predGAM_kde_boot2, echo=FALSE}
+if (exists("kde_boot_GMM")){
+  dat = kde_boot_GMM
+  name_synth = "kde_boot_GMM"
+  
+  # Predictions
+  reg_train = modelApp(dat)
+  
+  summary(reg_train)
+  plot(reg_train)
+  gam.check(reg_train)
+  
+  p = predict(reg_train,test, se.fit = TRUE, type = "response")
+  upr <- p$fit + (2 * p$se.fit)
+  lwr <- p$fit - (2 * p$se.fit)
+  y_pred = p$fit
+  plot(y_pred_ref,y_pred)
+  
+  # Indicators
+  k_rmse = which(gam_rmse$ech == name_synth)
+  gam_rmse$rmse[k_rmse] = rmse(test$Y,y_pred)*100
+  k_rmse = which(gam_rmse_ref$ech == name_synth)
+  gam_rmse_ref$rmse[k_rmse] = rmse(y_pred_ref,y_pred)*100
+  
+  print(plot(test$X,y_pred))
+  print(points(test$X, y_pred_ref, col='green3'))
+  
+  graph_Y(dat,name_synth)
+}
+```
+
+COnditionnal application by $Y$ 
+
+```{r smoothedbootstrap3, echo=FALSE}
+if (relance == T){
+  # Drawing weight
+  X = ech0$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=ech0$X)$y
+  pt = Pt(X)
+  pt[is.na(pt)]=0
+  w = pt / pe
+  q = w / sum(w)
+
+  N = 100000
+  cl = max(ech0$Y)
+  ech0_ssY = ech0[,c("X", "Insured.age", "Car.age", "Credit.score", "Years.noclaims", "Duration")]
+  for (tir in seq(round(N/nrow(ech_add)))){
+    for (i in (0:cl)){
+      temp = data.frame(rmvg(n=sum(ech_add$Y == i), y=ech0_ssY[ech0$Y == i,], weights =  q[ech0$Y==i]),"Y"=i)
+      if (tir == 1 & i ==0) {
+      kde_boot_cond = temp
+    } else {kde_boot_cond = rbind(kde_boot_cond, temp)}
+    }
+  }
+
+
+  # Drawing weight
+  X = kde_boot_cond$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=kde_boot_cond$X)$y
+  pt = Pt(X)
+  pt[is.na(pt)]=0
+  w = pt / pe
+  q = w / sum(w)
+  # Drawing
+  ind = sample(seq(1, nrow(kde_boot_cond)),n_ech,replace=T,prob = q)
+  kde_boot_cond = kde_boot_cond[ind,filtre_var]
+}
+
+```
+
+Graphical analysis
+
+
+```{r smoothedbootstrap3_graph, echo=FALSE}
+if (exists("kde_boot_cond")){
+  hist(kde_boot_cond$X,breaks=100, col = "antiquewhite",freq=F,right = T,xlab = "X (kde_boot_cond)",main = "Histogram kde_boot_cond X (kde_boot_cond)")
+  points(kde_boot_cond$X,Pt(kde_boot_cond$X),col="red")
+  lines(density(kde_boot_cond$X),col="black",lwd=2)
+  
+  hist(kde_boot_cond$X, col=rgb(0,0,1,1/4),breaks = 100, prob=T,)  
+  hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 50, prob=T, add=T) 
+  
+  kde_boot_cond$Y = round(kde_boot_cond$Y,0)
+  
+  # Y Analysis
+  plot(kde_boot_cond$X,kde_boot_cond$Y)
+  points(ech0$X,ech0$Y,col="red")
+  
+  graph_X(kde_boot_cond,"kde_boot_cond")
+}
+```
+
+```{r predGAM_kde_boot3, echo=FALSE}
+if (exists("kde_boot_cond")){
+  dat = kde_boot_cond
+  name_synth = "kde_boot_cond"
+  
+  # Predictions
+  reg_train = modelApp(dat)
+  
+  summary(reg_train)
+  plot(reg_train)
+  #gam.check(reg_train)
+  
+  p = predict(reg_train,test, se.fit = TRUE, type = "response")
+  upr <- p$fit + (2 * p$se.fit)
+  lwr <- p$fit - (2 * p$se.fit)
+  y_pred = p$fit
+  plot(y_pred_ref,y_pred)
+  
+  # Indicators
+  k_rmse = which(gam_rmse$ech == name_synth)
+  gam_rmse$rmse[k_rmse] = rmse(test$Y,y_pred)*100
+  k_rmse = which(gam_rmse_ref$ech == name_synth)
+  gam_rmse_ref$rmse[k_rmse] = rmse(y_pred_ref,y_pred)*100
+  
+  print(plot(test$X,y_pred))
+  print(points(test$X, y_pred_ref, col='green3'))
+  
+  graph_Y(dat,name_synth)
+}
+```
+
+
+```{r}
+gam_rmse
+gam_rmse_ref
+```
+
+
+## Mixture model approach (latent structure model)
+### Gaussian Mixture Model (GMM)
+
+
+```{r GMM_sim, include=FALSE}
+if (relance == T){
+  DMC = densityMclust(ech0, plot=F,G=2:10)
+  GMM = as.data.frame(sim(modelName=DMC$modelName,parameters=DMC$parameters,n=100000))
+  colnames(GMM) = c("cluster",colnames(ech0))
+  GMM0 = GMM
+  # Drawing weight
+  X = GMM$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=GMM$X)$y
+  pt = Pt(X)
+  pt[is.na(pt)]=0
+  w = pt / pe
+  q = w / sum(w)
+  # Drawing
+  ind = sample(seq(1, nrow(GMM)),n_ech,replace=T,prob = q)
+  GMM = GMM[ind,filtre_var]
+}
+```
+ 
+```{r}
+GMM0$Y = round(GMM0$Y,0)
+table(GMM0$Y)
+```
+ 
+Problem : Y doesn't take the value 2
+Application by $Y$
+
+```{r GMM_cond, include=FALSE}
+if (relance == T){
+  try({
+    filtre_varY = c("X","Insured.age","Car.age","Credit.score","Years.noclaims","Duration")
+    ech0_ssY = ech0[,filtre_varY]
+    
+    cl = max(ech0$Y)+1
+    for (i in (1:cl)){
+      temp = ech0_ssY[ech0$Y == i-1,]
+      DMC_temp = densityMclust(temp, plot=F,G=2:5)
+      GMM = as.data.frame(sim(modelName=DMC_temp$modelName,parameters=DMC_temp$parameters,n=nrow(temp)*10))
+      colnames(GMM) = c("cluster",colnames(ech0_ssY))
+       GMM = cbind(GMM, 'Y' = i-1)
+      if (i == 1) {
+        GMM_cond = GMM
+      }else {GMM_cond = rbind(GMM_cond,GMM)}
+    }
+    
+    # Drawing weight
+    X = GMM_cond$X
+    pe = density(X,n=length(X))
+    pe = approx(pe$x,pe$y,xout=GMM_cond$X)$y
+    pt = Pt(X)
+    pt[is.na(pt)]=0
+    w = pt / pe
+    q = w / sum(w)
+    # Drawing
+    ind = sample(seq(1, nrow(GMM_cond)),n_ech,replace=T,prob = q)
+    GMM_cond = GMM_cond[ind,filtre_var]
+  })
+}
+```
+
+
+Graphical analysis
+
+```{r GMM_cond_res, echo=FALSE}
+# Graphical analysis
+hist(GMM_cond$X,breaks=100, col = "antiquewhite",freq=F,right = T,xlab = "X (GMM_cond)",main = "Histogram GMM_cond X (GMM_cond)")
+points(GMM_cond$X,Pt(GMM_cond$X),col="red")
+lines(density(GMM_cond$X),col="black",lwd=2)
+
+hist(GMM_cond$X, col=rgb(0,0,1,1/4),breaks = 100, prob=T,) 
+hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 50, prob=T, add=T) 
+
+GMM_cond$Y = round(GMM_cond$Y,0)
+
+# Y Analysis
+plot(GMM_cond$X,GMM_cond$Y)
+points(ech0$X,ech0$Y,col="red")
+
+graph_X(GMM_cond,"GMM_cond")
+
+```
+
+```{r predGAM_GMM_cond, echo=FALSE}
+dat = GMM_cond
+name_synth = "GMM_cond"
+
+# Predictions
+reg_train = modelApp(dat)
+
+summary(reg_train)
+plot(reg_train)
+#gam.check(reg_train)
+
+p = predict(reg_train,test, se.fit = TRUE, type = "response")
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+plot(y_pred_ref,y_pred)
+
+# Indicators
+k_rmse = which(gam_rmse$ech == name_synth)
+gam_rmse$rmse[k_rmse] = rmse(test$Y,y_pred)*100
+k_rmse = which(gam_rmse_ref$ech == name_synth)
+gam_rmse_ref$rmse[k_rmse] = rmse(y_pred_ref,y_pred)*100
+
+print(plot(test$X,y_pred))
+print(points(test$X, y_pred_ref, col='green3'))
+
+graph_Y(dat,name_synth)
+```
+
+
+
+
+### Factor analysis (FA)
+
+
+```{r FA_simple, include=FALSE}
+if (relance == T){
+  ech = ech0
+  
+  if ("cluster" %in% colnames(ech)) {
+    cl = max(ech$cluster)
+    p = length(colnames(ech))-1
+  }else {
+    cl = 1
+    p = length(colnames(ech))
+  }
+  phi = array(rep(0,cl*p),dim=c(1,p,cl))
+  W = array(rep(0,cl*p*(p-1)),dim=c(p-1,p,cl))
+  mu = array(rep(0,cl*p),dim=c(1,p,cl))
+  for (i in (1:cl)){
+    if ("cluster" %in% colnames(ech)) {
+      temp = ech[ech$cluster == i,]
+    } else {temp = ech}
+    temp = temp[,filtre_var]
+    p = length(colnames(temp))
+    p_py = r_to_py(p,convert=TRUE)
+    py_run_string("from sklearn.decomposition import FactorAnalysis")
+    ech_py = r_to_py(temp,convert=TRUE)
+    py_run_string("p=r.ech_py.shape[1]")
+    py_run_string("transformer = FactorAnalysis(n_components=p-1, random_state=0)")
+    py_run_string("X_transformed = transformer.fit_transform(r.ech_py)")
+    py_run_string("noise_var = transformer.noise_variance_")
+    py_run_string("mu = transformer.mean_")
+    py_run_string("comp = transformer.components_")
+    phi[,,i] = py$noise_var
+    W[,,i] = py$comp
+    mu[,,i] = py$mu
+  }
+  # Data generation
+  for (i in (1:cl)){
+    if ("cluster" %in% colnames(ech)) {
+      n_ds = sum(ech$cluster == i)*10
+    }else{n_ds = nrow(ech)*10}
+    Z = mvrnorm(n_ds,rep(0,p-1),diag(rep(1,p-1)))
+    temp = Z%*%W[,,i]  +  t(matrix(rep(mu[,,i],n_ds),p,n_ds)) + mvrnorm(n_ds,rep(0,p),diag(phi[,,i]))
+    temp = as.data.frame(cbind(temp,cluster = i))
+    if (i == 1) {
+      FA = temp
+    }else {FA = rbind(FA,temp)}
+  }
+  FA = as.data.frame(FA)
+  colnames(FA) = c(colnames(ech0),"cluster")
+  
+  # Drawing weight
+  X = FA$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=FA$X)$y
+  pt = Pt(X)
+  pt[is.na(pt)]=0
+  w = pt / pe
+  q = w / sum(w)
+  # Drawing
+  ind = sample(seq(1, nrow(FA)),n_ech,replace=T,prob = q)
+  FA = FA[ind,filtre_var]
+}
+```
+
+Graphical analysis
+
+```{r FA_simple_res, echo=FALSE}
+if (exists("kde_boot_GMM")){
+  hist(FA$X,breaks=100, col = "antiquewhite",freq=F,right = T,xlab = "X (FA)",main = "Histogram FA X (FA)")
+  points(FA$X,Pt(FA$X),col="red")
+  lines(density(FA$X),col="black",lwd=2)
+  
+  hist(FA$X, col=rgb(0,0,1,1/4),breaks = 100, prob=T,) 
+  hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 50, prob=T, add=T) 
+  
+  FA$Y = round(FA$Y,0)
+  
+  # Y Analysis
+  plot(FA$X,FA$Y)
+  points(ech0$X,ech0$Y,col="red")
+}
+```
+
+The values of $Y$ are not releant : not 2 et negative
+
+Application by cluster
+
+```{r FA_cluster, include=FALSE}
+if (relance == T){
+  DMC = densityMclust(ech0, plot=F,G=2:6)
+  ech_MC = cbind(ech0,"cluster" = DMC$classification)
+  
+  ech = ech_MC
+  
+  if ("cluster" %in% colnames(ech)) {
+    cl = max(ech$cluster)
+    p = length(colnames(ech))-1
+  }else {
+    cl = 1
+    p = length(colnames(ech))
+  }
+  phi = array(rep(0,cl*p),dim=c(1,p,cl))
+  W = array(rep(0,cl*p*(p-1)),dim=c(p-1,p,cl))
+  mu = array(rep(0,cl*p),dim=c(1,p,cl))
+  for (i in (1:cl)){
+    if ("cluster" %in% colnames(ech)) {
+      temp = ech[ech$cluster == i,]
+    } else {temp = ech}
+    temp = temp[,filtre_var]
+    p = length(colnames(temp))
+    p_py = r_to_py(p,convert=TRUE)
+    py_run_string("from sklearn.decomposition import FactorAnalysis")
+    ech_py = r_to_py(temp,convert=TRUE)
+    py_run_string("p=r.ech_py.shape[1]")
+    py_run_string("transformer = FactorAnalysis(n_components=p-1, random_state=0)")
+    py_run_string("X_transformed = transformer.fit_transform(r.ech_py)")
+    py_run_string("noise_var = transformer.noise_variance_")
+    py_run_string("mu = transformer.mean_")
+    py_run_string("comp = transformer.components_")
+    phi[,,i] = py$noise_var
+    W[,,i] = py$comp
+    mu[,,i] = py$mu
+  }
+  # Data generation
+  for (i in (1:cl)){
+    n_ds = sum(ech$cluster == i)*100
+    Z = mvrnorm(n_ds,rep(0,p-1),diag(rep(1,p-1)))
+    temp = Z%*%W[,,i]  +  t(matrix(rep(mu[,,i],n_ds),p,n_ds)) + mvrnorm(n_ds,rep(0,p),diag(phi[,,i]))
+    temp = as.data.frame(cbind(temp,cluster = i))
+    if (i == 1) {
+      FA = temp
+    }else {FA = rbind(FA,temp)}
+  }
+  FA_GMM = as.data.frame(FA)
+  colnames(FA_GMM) = c(colnames(ech0),"cluster")
+  
+  # Drawing weight
+  X = FA_GMM$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=FA_GMM$X)$y
+  pt = Pt(X)
+  pt[is.na(pt)]=0
+  w = pt / pe
+  q = w / sum(w)
+  # Drawing
+  ind = sample(seq(1, nrow(FA_GMM)),n_ech,replace=T,prob = q)
+  FA_GMM = FA_GMM[ind,filtre_var]
+}
+```
+
+Graphical analysis
+ 
+```{r FA_cluster_res, echo=FALSE}
+# Graphical analysis
+hist(FA_GMM$X,breaks=100, col = "antiquewhite",freq=F,right = T,xlab = "X (FA_GMM)",main = "Histogram FA_GMM X (FA_GMM)")
+points(FA_GMM$X,Pt(FA_GMM$X),col="red")
+lines(density(FA_GMM$X),col="black",lwd=2)
+
+hist(FA_GMM$X, col=rgb(0,0,1,1/4),breaks = 100, prob=T,)  
+hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 50, prob=T, add=T) 
+
+FA_GMM$Y = round(FA_GMM$Y,0)
+
+# Y Analysis
+plot(FA_GMM$X,FA_GMM$Y)
+points(ech0$X,ech0$Y,col="red")
+
+graph_X(FA_GMM,"FA_GMM")
+
+```
+
+```{r predGAM_FA_GMM, echo=FALSE}
+dat = FA_GMM
+name_synth = "FA_GMM"
+
+# Predictions
+reg_train = modelApp(dat)
+
+summary(reg_train)
+plot(reg_train)
+#gam.check(reg_train)
+
+p = predict(reg_train,test, se.fit = TRUE, type = "response")
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+plot(y_pred_ref,y_pred)
+
+# Indicators
+k_rmse = which(gam_rmse$ech == name_synth)
+gam_rmse$rmse[k_rmse] = rmse(test$Y,y_pred)*100
+k_rmse = which(gam_rmse_ref$ech == name_synth)
+gam_rmse_ref$rmse[k_rmse] = rmse(y_pred_ref,y_pred)*100
+
+print(plot(test$X,y_pred))
+print(points(test$X, y_pred_ref, col='green3'))
+
+graph_Y(dat,name_synth)
+```
+
+Application by $Y^$
+
+```{r FA_cond, include=FALSE}
+if (relance == T){
+  
+  ech = ech0
+  ech0_ssY = ech0[,c("X", "Insured.age", "Car.age", "Credit.score", "Years.noclaims", "Duration")]
+  
+  cl = max(ech$Y)+1
+  p = length(colnames(ech0_ssY))
+  phi = array(rep(0,cl*p),dim=c(1,p,cl))
+  W = array(rep(0,cl*p*(p-1)),dim=c(p-1,p,cl))
+  mu = array(rep(0,cl*p),dim=c(1,p,cl))
+  for (i in (1:cl)){
+    temp = ech0_ssY[ech$Y == i-1,]
+    p = length(colnames(temp))
+    p_py = r_to_py(p,convert=TRUE)
+    py_run_string("from sklearn.decomposition import FactorAnalysis")
+    ech_py = r_to_py(temp,convert=TRUE)
+    py_run_string("p=r.ech_py.shape[1]")
+    py_run_string("transformer = FactorAnalysis(n_components=p-1, random_state=0)")
+    py_run_string("X_transformed = transformer.fit_transform(r.ech_py)")
+    py_run_string("noise_var = transformer.noise_variance_")
+    py_run_string("mu = transformer.mean_")
+    py_run_string("comp = transformer.components_")
+    phi[,,i] = py$noise_var
+    W[,,i] = py$comp
+    mu[,,i] = py$mu
+  }
+  # Data generation
+  for (i in (1:cl)){
+    n_ds = sum(ech$Y == i-1)*100
+    Z = mvrnorm(n_ds,rep(0,p-1),diag(rep(1,p-1)))
+    temp = Z%*%W[,,i]  +  t(matrix(rep(mu[,,i],n_ds),p,n_ds)) + mvrnorm(n_ds,rep(0,p),diag(phi[,,i]))
+    temp = as.data.frame(cbind(temp,"Y" = i-1))
+    if (i == 1) {
+      FA = temp
+    }else {FA = rbind(FA,temp)}
+  }
+  FA_cond = as.data.frame(FA)
+  colnames(FA_cond) = c(colnames(ech0_ssY),"Y")
+  
+  # Drawing weight
+  X = FA_cond$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=FA_cond$X)$y
+  pt = Pt(X)
+  pt[is.na(pt)]=0
+  w = pt / pe
+  q = w / sum(w)
+  # Drawing
+  ind = sample(seq(1, nrow(FA_cond)),n_ech,replace=T,prob = q)
+  FA_cond = FA_cond[ind,filtre_var]
+}
+```
+
+Graphical analysis 
+ 
+```{r FA_cluster_res, echo=FALSE}
+# Graphical analysis
+hist(FA_cond$X,breaks=100, col = "antiquewhite",freq=F,right = T,xlab = "X (FA_cond)",main = "Histogram FA_cond X (FA_cond)")
+points(FA_cond$X,Pt(FA_cond$X),col="red")
+lines(density(FA_cond$X),col="black",lwd=2)
+
+hist(FA_cond$X, col=rgb(0,0,1,1/4),breaks = 100, prob=T,)  
+hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 50, prob=T, add=T) 
+
+FA_cond$Y = round(FA_cond$Y,0)
+
+# Y Analysis
+plot(FA_cond$X,FA_cond$Y)
+points(ech0$X,ech0$Y,col="red")
+
+graph_X(FA_cond,"FA_cond")
+
+```
+
+```{r predGAM_FA_cond, echo=FALSE}
+dat = FA_cond
+name_synth = "FA_cond"
+
+# Predictions
+reg_train = modelApp(dat)
+
+summary(reg_train)
+plot(reg_train)
+#gam.check(reg_train)
+
+p = predict(reg_train,test, se.fit = TRUE, type = "response")
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+plot(y_pred_ref,y_pred)
+
+# Indicators
+k_rmse = which(gam_rmse$ech == name_synth)
+gam_rmse$rmse[k_rmse] = rmse(test$Y,y_pred)*100
+k_rmse = which(gam_rmse_ref$ech == name_synth)
+gam_rmse_ref$rmse[k_rmse] = rmse(y_pred_ref,y_pred)*100
+
+print(plot(test$X,y_pred))
+print(points(test$X, y_pred_ref, col='green3'))
+
+graph_Y(dat,name_synth)
+```
+
+
+## Copula
+
+
+```{r copula, include=FALSE}
+if (relance == T){
+  py_run_string("from sdv.tabular import GaussianCopula")
+  ech_py = r_to_py(ech0,convert=TRUE)
+  py_run_string("copule = GaussianCopula()")
+  py_run_string("copule.fit(r.ech_py)")
+  py_run_string("ech_copule_py = copule.sample(100000)")
+  ech_copule = py$ech_copule_py
+  
+  # Drawing weight
+  X = ech_copule$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=ech_copule$X)$y
+  pt = Pt(X)
+  pt[is.na(pt)]=0
+  w = pt / pe
+  q = w / sum(w)
+  # Drawing
+  ind = sample(seq(1, nrow(ech_copule)),n_ech,replace=T,prob = q)
+  ech_copule = ech_copule[ind,filtre_var]
+}
+```
+
+
+Graphical analysis
+
+```{r copula_res, echo=FALSE}
+# Graphical analysis
+hist(ech_copule$X,breaks=100, col = "antiquewhite",freq=F,right = T,xlab = "X (ech_copule)",main = "Histogram ech_copule X (ech_copule)")
+points(ech_copule$X,Pt(ech_copule$X),col="red")
+lines(density(ech_copule$X),col="black",lwd=2)
+
+hist(ech_copule$X, col=rgb(0,0,1,1/4),breaks = 100, prob=T,) 
+hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 50, prob=T, add=T) 
+
+ech_copule$Y = round(ech_copule$Y,0)
+
+# Y Analysis
+plot(ech_copule$X,ech_copule$Y)
+points(ech0$X,ech0$Y,col="red")
+
+graph_X(ech_copule,"ech_copule")
+```
+
+The values of $Y$ are only 0 and 1 (not 2)
+
+Application by $Y$
+
+
+```{r copula_cond, include=FALSE}
+if (relance == T){
+  ech = ech0
+  ech0_ssY = ech0[,c("X", "Insured.age", "Car.age", "Credit.score", "Years.noclaims", "Duration")]
+  
+  cl = max(ech$Y)+1
+  for (i in (1:cl)){
+    temp = ech0_ssY[ech$Y == i-1,]
+    py_run_string("from sdv.tabular import GaussianCopula")
+    ech_py = r_to_py(temp,convert=TRUE)
+    py_run_string("copule = GaussianCopula()")
+    py_run_string("copule.fit(r.ech_py)")
+    py_run_string("p = len(r.ech_py)")
+    py_run_string("ech_copule_py = copule.sample(p * 100)")
+    ech_copule = py$ech_copule_py
+    ech_copule = cbind(ech_copule, 'Y' = i-1)
+    if (i == 1) {
+      ech_copule_cond = ech_copule
+    }else {ech_copule_cond = rbind(ech_copule_cond,ech_copule)}
+  }
+  
+  # Drawing weight
+  X = ech_copule_cond$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=ech_copule_cond$X)$y
+  pt = Pt(X)
+  pt[is.na(pt)]=0
+  w = pt / pe
+  q = w / sum(w)
+  # Drawing
+  ind = sample(seq(1, nrow(ech_copule_cond)),n_ech,replace=T,prob = q)
+  ech_copule_cond = ech_copule_cond[ind,filtre_var]
+}
+```
+
+Graphical analysis
+
+```{r copulaCond_res, echo=FALSE}
+# Graphical analysis
+hist(ech_copule_cond$X,breaks=100, col = "antiquewhite",freq=F,right = T,xlab = "X (ech_copule_cond)",main = "Histogram ech_copule_cond X (ech_copule_cond)")
+points(ech_copule_cond$X,ech_copule_cond$X,col="red")
+lines(density(ech_copule_cond$X),col="black",lwd=2)
+
+hist(ech_copule_cond$X, col=rgb(0,0,1,1/4),breaks = 100, prob=T,)  
+hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 50, prob=T, add=T) 
+
+ech_copule_cond$Y = round(ech_copule_cond$Y,0)
+
+# Y Analysis
+plot(ech_copule_cond$X,ech_copule_cond$Y)
+points(ech0$X,ech0$Y,col="red")
+
+graph_X(ech_copule_cond,"ech_copule_cond")
+
+```
+
+```{r predGAM_ech_copule_cond_cond, echo=FALSE}
+dat = ech_copule_cond
+name_synth = "ech_copule_cond"
+
+# Predictions
+reg_train = modelApp(dat)
+
+summary(reg_train)
+plot(reg_train)
+#gam.check(reg_train)
+
+p = predict(reg_train,test, se.fit = TRUE, type = "response")
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit 
+plot(y_pred_ref,y_pred)
+
+# Indicators
+k_rmse = which(gam_rmse$ech == name_synth)
+gam_rmse$rmse[k_rmse] = rmse(test$Y,y_pred)*100
+k_rmse = which(gam_rmse_ref$ech == name_synth)
+gam_rmse_ref$rmse[k_rmse] = rmse(y_pred_ref,y_pred)*100
+
+print(plot(test$X,y_pred))
+print(points(test$X, y_pred_ref, col='green3'))
+
+graph_Y(dat,name_synth)
+
+```
+
+
+
+## Conditional Generative Adversarial Net (GAN)
+
+Application by cluster
+
+```{r GAN, echo=FALSE}
+if (relance == T){
+  DMC = densityMclust(ech0, plot=F,G=2:6)
+  ech_MC = cbind(ech0[,filtre_var],"cluster" = DMC$classification)
+  py_run_string("from ctgan import CTGANSynthesizer")
+  ech_MC_py = r_to_py(ech_MC,convert=TRUE)
+  py_run_string("discrete_columns = ['cluster']")
+  py_run_string("ctganData = CTGANSynthesizer(epochs=3000)")
+  py_run_string("ctganData.fit(r.ech_MC_py,discrete_columns)")
+  py_run_string("ech_ctgan_py = ctganData.sample(100000)")
+  ech_ctganSynth_GMM = py$ech_ctgan_py
+  
+  # Drawing weight
+  X = ech_ctganSynth_GMM$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=ech_ctganSynth_GMM$X)$y
+  pt = Pt(X)
+  pt[is.na(pt)]=0
+  w = pt / pe
+  q = w / sum(w)
+  # Drawing
+  ind = sample(seq(1, nrow(ech_ctganSynth_GMM)),n_ech,replace=T,prob = q)
+  ech_ctganSynth_GMM = ech_ctganSynth_GMM[ind,filtre_var]
+}
+```
+
+Graphical analysis
+
+```{r GAN_res, echo=FALSE}
+# Graphical analysis
+hist(ech_ctganSynth_GMM$X,breaks=100, col = "antiquewhite",freq=F,right = T,xlab = "X (ech_ctganSynth_GMM)",main = "Histogram ech_ctganSynth_GMM X (ech_ctganSynth_GMM)")
+points(ech_ctganSynth_GMM$X,Pt(ech_ctganSynth_GMM$X),col="red")
+lines(density(ech_ctganSynth_GMM$X),col="black",lwd=2)
+
+hist(ech_ctganSynth_GMM$X, col=rgb(0,0,1,1/4),breaks = 100, prob=T,) 
+hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 50, prob=T, add=T) 
+
+ech_ctganSynth_GMM$Y = round(ech_ctganSynth_GMM$Y,0)
+
+# Y Analysis
+plot(ech_ctganSynth_GMM$X,ech_ctganSynth_GMM$Y)
+points(ech0$X,ech0$Y,col="red")
+
+graph_X(ech_ctganSynth_GMM,"ech_ctganSynth_GMM")
+
+```
+
+Only 0 and 1 for $Y$
+
+
+```{r GAN_cond, echo=FALSE}
+if (relance == T){
+  py_run_string("from ctgan import CTGANSynthesizer")
+  ech_MC_py = r_to_py(ech0,convert=TRUE)
+  py_run_string("discrete_columns = ['Y']")
+  py_run_string("ctganData = CTGANSynthesizer(epochs=5000)")
+  py_run_string("ctganData.fit(r.ech_MC_py,discrete_columns)")
+  py_run_string("ech_ctgan_py = ctganData.sample(100000)")
+  ech_ctganSynth_Y = py$ech_ctgan_py
+  
+  # Drawing weight
+  X = ech_ctganSynth_Y$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=ech_ctganSynth_Y$X)$y
+  pt = Pt(X)
+  pt[is.na(pt)]=0
+  w = pt / pe
+  q = w / sum(w)
+  # Drawing
+  ind = sample(seq(1, nrow(ech_ctganSynth_Y)),n_ech,replace=T,prob = q)
+  ech_ctganSynth_Y = ech_ctganSynth_Y[ind,filtre_var]
+}
+```
+
+Graphical analysis
+
+```{r GANCond_res, echo=FALSE}
+# Graphical analysis
+hist(ech_ctganSynth_Y$X,breaks=100, col = "antiquewhite",freq=F,right = T,xlab = "X (ech_ctganSynth_Y)",main = "Histogram ech_ctganSynth_Y X (ech_ctganSynth_Y)")
+points(ech_ctganSynth_Y$X,Pt(ech_ctganSynth_Y$X),col="red")
+lines(density(ech_ctganSynth_Y$X),col="black",lwd=2)
+
+hist(ech_ctganSynth_Y$X, col=rgb(0,0,1,1/4),breaks = 100, prob=T,)  
+hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 50, prob=T, add=T) 
+
+ech_ctganSynth_Y$Y = round(ech_ctganSynth_Y$Y,0)
+
+# Y Analysis
+plot(ech_ctganSynth_Y$X,ech_ctganSynth_Y$Y)
+points(ech0$X,ech0$Y,col="red")
+
+graph_X(ech_ctganSynth_Y,"ech_ctganSynth_Y")
+
+```
+
+
+```{r predGAM_GAN_cond, echo=FALSE}
+dat = ech_ctganSynth_Y
+name_synth = "ech_ctganSynth_Y"
+
+# Predictions
+reg_train = modelApp(dat)
+
+summary(reg_train)
+plot(reg_train)
+#gam.check(reg_train)
+
+p = predict(reg_train,test, se.fit = TRUE, type = "response")
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+plot(y_pred_ref,y_pred)
+
+# Indicators
+k_rmse = which(gam_rmse$ech == name_synth)
+gam_rmse$rmse[k_rmse] = rmse(test$Y,y_pred)*100
+k_rmse = which(gam_rmse_ref$ech == name_synth)
+gam_rmse_ref$rmse[k_rmse] = rmse(y_pred_ref,y_pred)*100
+
+print(plot(test$X,y_pred))
+print(points(test$X, y_pred_ref, col='green3'))
+
+graph_Y(dat,name_synth)
+```
+
+
+
+
+## Random Forest
+
+
+```{r Synthpop-RF, echo=FALSE}
+if (relance == T){
+  ech_RF = syn(ech0,method="rf", visit.sequence = filtre_var, k=10000)
+  ech_RF = ech_RF$syn
+  
+  # Drawing weight
+  X = ech_RF$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=ech_RF$X)$y
+  pt = Pt(X)
+  pt[is.na(pt)]=0
+  w = pt / pe
+  q = w / sum(w)
+  # Drawing
+  ind = sample(seq(1, nrow(ech_RF)),n_ech,replace=T,prob = q)
+  ech_RF = ech_RF[ind,filtre_var]
+}
+```
+
+Graphical analysis
+
+```{r RF_res, echo=FALSE}
+# Graphical analysis
+hist(ech_RF$X,breaks=100, col = "antiquewhite",freq=F,right = T,xlab = "X (ech_RF)",main = "Histogram ech_RF X (ech_RF)")
+points(ech_RF$X,Pt(ech_RF$X),col="red")
+lines(density(ech_RF$X),col="black",lwd=2)
+
+hist(ech_RF$X, col=rgb(0,0,1,1/4),breaks = 100, prob=T,)  
+hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 50, prob=T, add=T) 
+
+ech_RF$Y = round(ech_RF$Y,0)
+
+# Y Analysis
+plot(ech_RF$X,ech_RF$Y)
+points(ech0$X,ech0$Y,col="red")
+
+graph_X(ech_RF, "ech_RF")
+
+```
+
+
+```{r predGAM_ech_RF, echo=FALSE}
+dat = ech_RF
+name_synth = "ech_RF"
+
+# Predictions
+reg_train = modelApp(dat)
+
+summary(reg_train)
+plot(reg_train)
+#gam.check(reg_train)
+
+p = predict(reg_train,test, se.fit = TRUE, type = "response")
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+plot(y_pred_ref,y_pred)
+
+# Indicators
+k_rmse = which(gam_rmse$ech == name_synth)
+gam_rmse$rmse[k_rmse] = rmse(test$Y,y_pred)*100
+k_rmse = which(gam_rmse_ref$ech == name_synth)
+gam_rmse_ref$rmse[k_rmse] = rmse(y_pred_ref,y_pred)*100
+
+print(plot(test$X,y_pred))
+print(points(test$X, y_pred_ref, col='green3'))
+
+graph_Y(dat,name_synth)
+```
+
+
+Application by $Y$
+```{r Synthpop-RF, echo=FALSE}
+if (relance == T){
+  filtre_varY = c("X","Insured.age","Car.age","Credit.score","Years.noclaims","Duration")
+  ech0_ssY = ech0[,filtre_varY]
+  
+  cl = max(ech0$Y)+1
+  for (i in (1:cl)){
+    temp = ech0_ssY[ech$Y == i-1,]
+    ech_RF_Y = syn(temp,method="rf", visit.sequence = filtre_varY, k=nrow(temp)*10)
+    ech_RF_Y = ech_RF_Y$syn
+    ech_RF_Y = cbind(ech_RF_Y, 'Y' = i-1)
+    if (i == 1) {
+      ech_RF_cond = ech_RF_Y
+    }else {ech_RF_cond = rbind(ech_RF_cond,ech_RF_Y)}
+  }
+  
+  # Drawing weight
+  X = ech_RF_cond$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=ech_RF_cond$X)$y
+  pt = Pt(X)
+  pt[is.na(pt)]=0
+  w = pt / pe
+  q = w / sum(w)
+  # Drawing
+  ind = sample(seq(1, nrow(ech_RF_cond)),n_ech,replace=T,prob = q)
+  ech_RF_cond = ech_RF_cond[ind,filtre_var]
+}
+```
+
+Graphical analysis
+
+```{r RF_cond_res, echo=FALSE}
+# Graphical analysis
+hist(ech_RF_cond$X,breaks=100, col = "antiquewhite",freq=F,right = T,xlab = "X (ech_RF_cond)",main = "Histogram ech_RF_cond X (ech_RF_cond)")
+points(ech_RF_cond$X,Pt(ech_RF_cond$X),col="red")
+lines(density(ech_RF_cond$X),col="black",lwd=2)
+
+hist(ech_RF_cond$X, col=rgb(0,0,1,1/4),breaks = 100, prob=T,) 
+hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 50, prob=T, add=T) 
+
+ech_RF_cond$Y = round(ech_RF_cond$Y,0)
+
+# Y Analysis
+plot(ech_RF_cond$X,ech_RF_cond$Y)
+points(ech0$X,ech0$Y,col="red")
+
+graph_X(ech_RF_cond, "ech_RF_cond")
+```
+
+```{r predGAM_ech_RF, echo=FALSE}
+dat = ech_RF_cond
+name_synth = "ech_RF_cond"
+
+# Predictions
+reg_train = modelApp(dat)
+
+summary(reg_train)
+plot(reg_train)
+#gam.check(reg_train)
+
+p = predict(reg_train,test, se.fit = TRUE, type = "response")
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+plot(y_pred_ref,y_pred)
+
+# Indicators
+k_rmse = which(gam_rmse$ech == name_synth)
+gam_rmse$rmse[k_rmse] = rmse(test$Y,y_pred)*100
+k_rmse = which(gam_rmse_ref$ech == name_synth)
+gam_rmse_ref$rmse[k_rmse] = rmse(y_pred_ref,y_pred)*100
+
+print(plot(test$X,y_pred))
+print(points(test$X, y_pred_ref, col='green3'))
+
+graph_Y(dat,name_synth)
+```
+
+
+Appliction by cluster 
+
+```{r Synthpop-RF_GMM, echo=FALSE}
+if (relance == T){
+  DMC = densityMclust(ech0, plot=F,G=1:10)
+  ech_MC = cbind(ech0,"cluster" = DMC$classification)
+  
+  cl = max(ech_MC$cluster)
+  for (i in (1:cl)){
+    temp = ech_MC[ech_MC$cluster == i,filtre_var]
+    ech_RF_clust = syn(temp,method="rf", visit.sequence = filtre_var, k=nrow(temp)*10)
+    ech_RF_clust = ech_RF_clust$syn
+    if (i == 1) {
+      ech_RF_GMM = ech_RF_clust
+    }else {ech_RF_GMM = rbind(ech_RF_GMM,ech_RF_clust)}
+  }
+  
+  
+  # Drawing weight
+  X = ech_RF_GMM$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=ech_RF_GMM$X)$y
+  pt = Pt(X)
+  pt[is.na(pt)]=0
+  w = pt / pe
+  q = w / sum(w)
+  # Drawing
+  ind = sample(seq(1, nrow(ech_RF_GMM)),n_ech,replace=T,prob = q)
+  ech_RF_GMM = ech_RF_GMM[ind,filtre_var]
+}
+```
+
+Graphical analysis
+
+
+```{r RF2_res, echo=FALSE}
+# Graphical analysis
+hist(ech_RF_GMM$X,breaks=100, col = "antiquewhite",freq=F,right = T,xlab = "X (ech_RF_GMM)",main = "Histogram ech_RF_GMM X (ech_RF_GMM)")
+points(ech_RF_GMM$X,Pt(ech_RF_GMM$X),col="red")
+lines(density(ech_RF_GMM$X),col="black",lwd=2)
+
+hist(ech_RF_GMM$X, col=rgb(0,0,1,1/4),breaks = 100, prob=T,)  
+hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 50, prob=T, add=T) 
+
+ech_RF_GMM$Y = round(ech_RF_GMM$Y,0)
+
+# Y Analysis
+plot(ech_RF_GMM$X,ech_RF_GMM$Y)
+points(ech0$X,ech0$Y,col="red")
+
+graph_X(ech_RF_GMM, "ech_RF_GMM")
+
+```
+
+
+
+```{r predGAM_ech_RF_GMM, echo=FALSE}
+dat = ech_RF_GMM
+name_synth = "ech_RF_GMM"
+
+# Predictions
+reg_train = modelApp(dat)
+
+summary(reg_train)
+plot(reg_train)
+#gam.check(reg_train)
+
+p = predict(reg_train,test, se.fit = TRUE, type = "response")
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+plot(y_pred_ref,y_pred)
+
+# Indicators
+k_rmse = which(gam_rmse$ech == name_synth)
+gam_rmse$rmse[k_rmse] = rmse(test$Y,y_pred)*100
+k_rmse = which(gam_rmse_ref$ech == name_synth)
+gam_rmse_ref$rmse[k_rmse] = rmse(y_pred_ref,y_pred)*100
+
+print(plot(test$X,y_pred))
+print(points(test$X, y_pred_ref, col='green3'))
+
+graph_Y(dat,name_synth)
+```
+
+
+
+
+## k-NN Interpolation
+
+### Interpolation inspired by SMOTE (SMOTE)
+
+```{r Smote, echo=FALSE}
+if (relance == T){
+  # Drawing weight
+  X = ech0$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=ech0$X)$y
+  pt = Pt(X)
+  w = pt / pe
+  q = w / sum(w)
+  ech = ech0
+  
+  k=3
+  ech$id=seq(nrow(ech))
+  
+  n_pop = 100000 #nb obs de la pop fictive
+  for (i in (1:n_pop)){
+      id = sample(nrow(ech0),1,prob = q)
+      knn_id = smotefamily::knearest(ech,ech[id,], n_clust=k)
+      kppv = knn_id[sample(seq(k),1)]
+      lambda = runif(1)
+      new_obs = ech[id,] + lambda * (ech[kppv,]-ech[id,])
+      rownames(new_obs)=i
+      if (i==1){
+        ech_smote = new_obs
+      }else{
+        ech_smote = rbind(ech_smote,new_obs)
+      }
+  }
+  ech_smote$id = NULL
+  
+  
+  # Drawing weight
+  X = ech_smote$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=ech_smote$X)$y
+  pt = Pt(X)
+  pt[is.na(pt)]=0
+  w = pt / pe
+  q = w / sum(w)
+  # Drawing
+  ind = sample(seq(1, nrow(ech_smote)),n_ech,replace=T,prob = q)
+  ech_smote = ech_smote[ind,filtre_var]
+}
+```
+
+Graphical analysis
+
+```{r Smote_res, echo=FALSE}
+# Graphical analysis
+hist(ech_smote$X,breaks=100, col = "antiquewhite",freq=F,right = T,xlab = "X (ech_smote)",main = "Histogram ech_smote X (ech_smote)")
+points(ech_smote$X,Pt(ech_smote$X),col="red")
+lines(density(ech_smote$X),col="black",lwd=2)
+
+hist(ech_smote$X, col=rgb(0,0,1,1/4),breaks = 100, prob=T,xlim=c(0,20000))  
+hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 50, prob=T, add=T) 
+
+ech_smote$Y = round(ech_smote$Y,0)
+
+# Y Analysis
+plot(ech_smote$X,ech_smote$Y)
+points(ech0$X,ech0$Y,col="red")
+
+graph_X(ech_smote,"ech_smote")
+
+```
+
+
+```{r predGAM_ech_smote, echo=FALSE}
+dat = ech_smote
+name_synth = "ech_smote"
+
+# Predictions
+reg_train = modelApp(dat)
+
+summary(reg_train)
+plot(reg_train)
+#gam.check(reg_train)
+
+p = predict(reg_train,test, se.fit = TRUE, type = "response")
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+plot(y_pred_ref,y_pred)
+
+# Indicators
+k_rmse = which(gam_rmse$ech == name_synth)
+gam_rmse$rmse[k_rmse] = rmse(test$Y,y_pred)*100
+k_rmse = which(gam_rmse_ref$ech == name_synth)
+gam_rmse_ref$rmse[k_rmse] = rmse(y_pred_ref,y_pred)*100
+
+print(plot(test$X,y_pred))
+print(points(test$X, y_pred_ref, col='green3'))
+
+graph_Y(dat,name_synth)
+```
+
+
+### Application by clustering
+
+
+```{r Smote_clust, echo=FALSE}
+if (relance == T){ 
+ # Drawing weight
+  X = ech0$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=ech0$X)$y
+  pt = Pt(X)
+  pt[is.na(pt)]=0
+  w = pt / pe
+  q = w / sum(w)
+  
+  k=3
+  
+  # Approche par clustering
+  ech = ech0
+  ech_MC = cbind(ech0,"cluster" = DMC$classification)
+  cl = max(ech_MC$cluster)
+  n_pop = 100000 
+  for (i in (1:n_pop)){
+      id = sample(nrow(ech0),1,prob = q)
+      temp = ech_MC[ech_MC$cluster == ech_MC$cluster[id],]
+      knn_id = smotefamily::knearest(temp,ech_MC[id,], n_clust=k)
+      kppv = knn_id[sample(seq(k),1)]
+      lambda = runif(1)
+      new_obs = ech_MC[id,] + lambda * (temp[kppv,]-ech_MC[id,])
+      rownames(new_obs)=i
+      if (i==1){
+        ech_smote_GMM = new_obs
+      }else{
+        ech_smote_GMM = rbind(ech_smote_GMM,new_obs)
+      }
+  }
+  ech_smote_GMM$id = NULL
+
+  # Drawing weight
+  X = ech_smote_GMM$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=ech_smote_GMM$X)$y
+  pt = Pt(X)
+  pt[is.na(pt)]=0
+  w = pt / pe
+  q = w / sum(w)
+  # Drawing
+  ind = sample(seq(1, nrow(ech_smote_GMM)),n_ech,replace=T,prob = q)
+  ech_smote_GMM = ech_smote_GMM[ind,filtre_var]
+}
+```
+
+Graphical analysis
+
+```{r SmoteGMM_res, echo=FALSE}
+# Graphical analysis
+hist(ech_smote_GMM$X,breaks=100, col = "antiquewhite",freq=F,right = T,xlab = "X (ech_smote_GMM)",main = "Histogram ech_smote_GMM X (ech_smote_GMM)")
+points(ech_smote_GMM$X,Pt(ech_smote_GMM$X),col="red")
+lines(density(ech_smote_GMM$X),col="black",lwd=2)
+
+hist(ech_smote_GMM$X, col=rgb(0,0,1,1/4),breaks = 100, prob=T,)  
+hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 50, prob=T, add=T) 
+
+ech_smote_GMM$Y = round(ech_smote_GMM$Y,0)
+
+# Y Analysis
+plot(ech_smote_GMM$X,ech_smote_GMM$Y)
+points(ech0$X,ech0$Y,col="red")
+
+graph_X(ech_smote_GMM,"ech_smote_GMM")
+
+```
+
+
+```{r predGAM_ech_smote_GMM, echo=FALSE}
+dat = ech_smote_GMM
+name_synth = "ech_smote_GMM"
+
+# Predictions
+reg_train = modelApp(dat)
+
+summary(reg_train)
+plot(reg_train)
+#gam.check(reg_train)
+
+p = predict(reg_train,test, se.fit = TRUE, type = "response")
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+plot(y_pred_ref,y_pred)
+
+# Indicators
+k_rmse = which(gam_rmse$ech == name_synth)
+gam_rmse$rmse[k_rmse] = rmse(test$Y,y_pred)*100
+k_rmse = which(gam_rmse_ref$ech == name_synth)
+gam_rmse_ref$rmse[k_rmse] = rmse(y_pred_ref,y_pred)*100
+
+print(plot(test$X,y_pred))
+print(points(test$X, y_pred_ref, col='green3'))
+
+graph_Y(dat,name_synth)
+```
+
+
+Application by Y
+
+```{r Smote_cond, echo=FALSE}
+if (relance == T){
+  
+  verif = inherits(try({
+    # Drawing weight
+    X = ech0$X
+    pe = density(X,n=length(X))
+    pe = approx(pe$x,pe$y,xout=ech0$X)$y
+    pt = Pt(X)
+    pt[is.na(pt)]=0
+    w = pt / pe
+    q = w / sum(w)
+    
+    ech = ech0
+    cl = max(ech0$Y)+1
+    n_pop = 100000 
+    for (i in (1:n_pop)){
+        id = sample(nrow(ech0),1,prob = q)
+        temp = ech0[ech0$Y == ech0$Y[id],]
+        knn_id = smotefamily::knearest(temp,ech0[id,], n_clust=k)
+        kppv = knn_id[sample(seq(k),1)]
+        lambda = runif(1)
+        new_obs = ech0[id,] + lambda * (temp[kppv,]-ech0[id,])
+        rownames(new_obs)=i
+        if (i==1){
+          ech_smote_cond = new_obs
+        }else{
+          ech_smote_cond = rbind(ech_smote_cond,new_obs)
+        }
+    }
+    ech_smote_cond$id = NULL
+}, silent=TRUE), "try-error")  
+    
+    if (verif == FALSE){
+    # Drawing weight
+    X = ech0$X
+    pe = density(X,n=length(X))
+    pe = approx(pe$x,pe$y,xout=ech0$X)$y
+    pt = Pt(X)
+    pt[is.na(pt)]=0
+    w = pt / pe
+    q = w / sum(w)
+    
+    ech = ech0
+    cl = max(ech0$Y)+1
+    n_pop = 100000 
+    for (i in (1:n_pop)){
+        id = sample(nrow(ech0),1,prob = q)
+        temp = ech0[ech0$Y == ech0$Y[id],]
+        knn_id = smotefamily::knearest(temp,ech0[id,], n_clust=k)
+        kppv = knn_id[sample(seq(k),1)]
+        lambda = runif(1)
+        new_obs = ech0[id,] + lambda * (temp[kppv,]-ech0[id,])
+        rownames(new_obs)=i
+        if (i==1){
+          ech_smote_cond = new_obs
+        }else{
+          ech_smote_cond = rbind(ech_smote_cond,new_obs)
+        }
+    }
+    ech_smote_cond$id = NULL
+    
+    # Drawing weight
+    X = ech_smote_cond$X
+    pe = density(X,n=length(X))
+    pe = approx(pe$x,pe$y,xout=ech_smote_cond$X)$y
+    pt = Pt(X)
+    pt[is.na(pt)]=0
+    w = pt / pe
+    q = w / sum(w)
+    # Drawing
+    ind = sample(seq(1, nrow(ech_smote_cond)),n_ech,replace=T,prob = q)
+    ech_smote_cond = ech_smote_cond[ind,filtre_var]
+      
+    }
+}
+```
+
+
+Graphical analysis
+
+```{r SmoteGMM_res, echo=FALSE}
+# Graphical analysis
+hist(ech_smote_cond$X,breaks=100, col = "antiquewhite",freq=F,right = T,xlab = "X (ech_smote_cond)",main = "Histogram ech_smote_cond X (ech_smote_cond)")
+points(ech_smote_cond$X,Pt(ech_smote_cond$X),col="red")
+lines(density(ech_smote_cond$X),col="black",lwd=2)
+
+hist(ech_smote_cond$X, col=rgb(0,0,1,1/4),breaks = 100, prob=T,)  
+hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 50, prob=T, add=T) 
+
+ech_smote_cond$Y = round(ech_smote_cond$Y,0)
+
+# Y Analysis
+plot(ech_smote_cond$X,ech_smote_cond$Y)
+points(ech0$X,ech0$Y,col="red")
+
+graph_X(ech_smote_cond,"ech_smote_cond")
+
+```
+
+
+```{r predGAM_ech_smote_cond, echo=FALSE}
+dat = ech_smote_cond
+name_synth = "ech_smote_cond"
+
+# Predictions
+reg_train = modelApp(dat)
+
+summary(reg_train)
+plot(reg_train)
+#gam.check(reg_train)
+
+p = predict(reg_train,test, se.fit = TRUE, type = "response")
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+plot(y_pred_ref,y_pred)
+
+# Indicators
+k_rmse = which(gam_rmse$ech == name_synth)
+gam_rmse$rmse[k_rmse] = rmse(test$Y,y_pred)*100
+k_rmse = which(gam_rmse_ref$ech == name_synth)
+gam_rmse_ref$rmse[k_rmse] = rmse(y_pred_ref,y_pred)*100
+
+print(plot(test$X,y_pred))
+print(points(test$X, y_pred_ref, col='green3'))
+
+graph_Y(dat,name_synth)
+```
+
+
+
+
+
+
+### Approche SMOGN
+
+On $X_1$ 
+
+```{r SmoGN, echo=FALSE}
+if (relance == T){
+  ech_smoGN = SMOGNRegress(X ~ .,ech0)
+}
+
+# Graphical analysis
+hist(ech_smoGN$X,breaks=100, col = "antiquewhite",freq=F,right = T,xlab = "X (ech_smoGN)",main = "Histogram ech_smoGN X (ech_smoGN)")
+points(ech_smoGN$X,Pt(ech_smoGN$X),col="red")
+lines(density(ech_smoGN$X),col="black",lwd=2)
+
+hist(ech_smoGN$X, col=rgb(0,0,1,1/4),breaks = 100, prob=T,) 
+hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 50, prob=T, add=T) 
+
+ech_smoGN$Y = round(ech_smoGN$Y,0)
+
+# Y Analysis
+plot(ech_smoGN$X,ech_smoGN$Y)
+points(ech0$X,ech0$Y,col="red")
+
+graph_X(ech_smoGN,"ech_smoGN")
+
+```
+
+Not relevant
+
+
+```{r fin, echo=False}
+beepr::beep(8)
+```
+
+
+
