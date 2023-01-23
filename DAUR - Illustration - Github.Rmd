@@ -1,7 +1,7 @@
 ---
 title: "Data Augmentation for Imbalanced Regression - Illustration"
-author: "Anonymous"
-date: "31/10/2022"
+author: "Samuel STOCKSIEKER"
+date: "23/01/2023"
 output:
   pdf_document: 
     toc: yes
@@ -44,13 +44,13 @@ library("seewave")
 
 knitr::opts_chunk$set(echo = FALSE,warning=FALSE)
 
-relance = F # = T to restart the simulations, F to work with the loaded workspace
+relance = T # = T to restart the simulations, F to run with the loaded workspace (v AISTATS)
 
 # Workspace setting
-setwd("C:/Users/user/OneDrive/Perso/Thèse/Travaux/Exogenous Sampling/Illustration")
+setwd("C:/Users/samgo/OneDrive/Perso/Thèse/Travaux/Exogenous Sampling/Illustration")
 
 if (relance == F){
-  load("C:/Users/user/OneDrive/Perso/Thèse/Travaux/Exogenous Sampling/Illustration/WKS/wks-Illu-relance.RData")
+  load("C:/Users/samgo/OneDrive/Perso/Thèse/Travaux/Exogenous Sampling/Illustration/WKS/wks-Illu-relance.RData")
 }
 ```
 
@@ -118,8 +118,8 @@ if (relance == T){
 Finally, we draw an imbalanced sample $\mathcal{D}^i$ from this remaining population. The draw weights to construct this imbalanced sample are defined by the distribution $F = \mathcal{B}\text{eta}(9,9)$.
 
 ```{r}
-plot(dbeta(x=seq(0,1,0.01), alpha_pop, beta_pop), col="green3", type = 'l')
-lines(dbeta(x=seq(0,1,0.01),9 ,9 ), col="darkred")
+plot(dbeta(x=seq(0,1,0.01), 9,9 ), col="darkred", type = 'l')
+lines(dbeta(x=seq(0,1,0.01),alpha_pop ,beta_pop ), col="green3")
 ```
 
 ```{r genEch}
@@ -131,7 +131,7 @@ if (relance == T){
 
 ```
 
-Graphical analysis
+Approach
 
 ```{r genEchGraph}
 
@@ -142,7 +142,7 @@ colnames(df_test)=c("X","dataset")
 df = rbind(df_train,df_test)
 
 ggplot(df, aes(X, color=dataset, fill=dataset)) + 
-  geom_histogram(alpha = 0.5,aes(y = ..density..),bins=100,position="identity", legend="none")+
+  geom_histogram(alpha = 0.5,aes(y = ..density..),bins=100,position="identity")+
   geom_density(alpha=0.5)+
   scale_color_manual(values = c("pop" = "azure4", "imb" = "darkred")) + 
   scale_fill_manual(values = c("pop" = "azure4", "imb" = "darkred")) +
@@ -150,7 +150,7 @@ ggplot(df, aes(X, color=dataset, fill=dataset)) +
 ggsave("Sorties/comp_X_Ech0-vs-Pop-Dens.png",width=7.29, height=4.5)
 
 ggplot(df, aes(X, color=dataset, fill=dataset)) + 
-  geom_histogram(alpha = 0.5,aes(y = ..density..),bins=100,position="identity", legend="none")+
+  geom_histogram(alpha = 0.5,aes(y = ..density..),bins=100,position="identity")+
   scale_color_manual(values = c("pop" = "azure4", "imb" = "darkred")) + 
   scale_fill_manual(values = c("pop" = "azure4", "imb" = "darkred")) +
   theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"))
@@ -196,220 +196,11 @@ pbeta(a,5,5)
 
 we face an imbalanced regression: a $(\alpha, \beta)$-imbalanced problem with, for example, $\lvert \frac{\widehat{\mathbb{P}}(\boldsymbol{X}\in\chi)}{\mathbb{P}_0(\boldsymbol{X}\in\chi)} - 1 \rvert > \alpha$ when $\chi:= [0,0.3]$ or $\chi:= [0.7,1]$ and ($\alpha \leq 0.59, \beta \leq 0.09$). Here we are in the situation where $F$ and $F_0$ have the same support and the imbalanced problem will be less with $n$ large.
 
-### Impact of imbalanced : Test dataset prediction
+The impacts of the imbalanced sample on the prediction are visible on the part "Performance Evaluation"
 
-#### Generalized Additive Model
 
-```{r predGAM_pop_v0, echo=FALSE, include=TRUE}
-dat = ech_rep
 
-# Predictions
-reg = gam(Y ~  s(X) , data = dat)
-y_pred = predict(reg,test)
-res = summary(reg)
-ymax=max(y_pred,y_test)
-ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-
-# Indicators
-devExp = res$dev.expl ; print(paste0("deviance expliquee : " , round(devExp*100,2)))
-rmse = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(rmse,2)))
-R2 = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(R2*100,2)))
-
-# Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
-  geom_line(aes(y=y_pred), lwd=1.5, col="darkred")
-```
-
-```{r predGAM_ech0_v0, echo=FALSE, include=TRUE}
-dat = ech0
-
-# Predictions
-reg = gam(Y ~  s(X) , data = dat)
-p = predict(reg,test,type = "link", se.fit = TRUE)
-y_pred = p$fit
-
-res = summary(reg)
-ymax=max(y_pred,ymax)
-ymin=min(y_pred,ymin)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-
-# Indicateors
-devExp = res$dev.expl ; print(paste0("deviance expliquee : " , round(devExp*100,2)))
-rmse = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(rmse,2)))
-R2 = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(R2*100,2)))
-
-# Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
-  geom_line(aes(y=y_pred), lwd=1.5, col="darkred")
-
-```
-
-#### Random Forest
-
-```{r predRF_pop_v0, echo=FALSE, include=TRUE}
-dat = ech_rep
-
-# Predictions
-reg = randomForest( Y ~ ., data = dat)
-y_pred = predict(reg,test)
-ymax=max(y_pred,y_test)
-ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-
-# Indicators
-rsq = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(rsq*100,2)))
-rmse = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(rmse,2)))
-R2 = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(R2*100,2)))
-
-# Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
-  geom_point(aes(y=y_pred), col="darkred", lwd=0.9) + stat_smooth(aes(y=y_pred), lwd=1.5, col="darkred", method='loess')
-```
-
-```{r predRF_ech0_v0, echo=FALSE, include=TRUE}
-dat = ech0
-
-# Predictions
-reg = randomForest( Y ~ ., data = dat)
-y_pred = predict(reg,test)
-ymax=max(y_pred,ymax)
-ymin=min(y_pred,ymin)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-
-# Indicators
-rsq = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(rsq*100,2)))
-rmse = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(rmse,2)))
-R2 = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(R2*100,2)))
-
-# Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
-  geom_point(aes(y=y_pred), col="darkred", lwd=0.9) + stat_smooth(aes(y=y_pred), lwd=1.5, col="darkred", method='loess')
-```
-
-#### Multivariate Adaptative Spline Regression
-
-```{r predMARS_pop, echo=FALSE, include=TRUE}
-dat = ech_rep
-
-# Predictions
-reg = earth( Y ~ ., data = dat)
-y_pred = predict(reg,test)
-ymax=max(y_pred,y_test)
-ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-
-# Indicators
-rsq = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(rsq*100,2)))
-rmse = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(rmse,2)))
-R2 = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(R2*100,2)))
-
-# Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
-  geom_line(aes(y=y_pred), lwd=1.5, col="darkred")
-```
-
-```{r predMARS_ech0, echo=FALSE, include=TRUE}
-dat = ech0
-
-# Predictions
-reg = earth( Y ~ ., data = dat)
-y_pred = predict(reg,test)
-ymax=max(y_pred,ymax)
-ymin=min(y_pred,ymin)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-
-# Indicators
-rsq = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(rsq*100,2)))
-rmse = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(rmse,2)))
-R2 = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(R2*100,2)))
-
-# Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
-  geom_line(aes(y=y_pred), lwd=1.5, col="darkred")
-```
-
-```{r predMARS2_pop_v0, echo=FALSE, include=TRUE}
-dat = ech_rep
-
-# Predictions
-reg = mars(dat$X ,dat$Y)
-y_pred = predict(reg,test)
-ymax=max(y_pred,y_test)
-ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-
-# Indicators
-rsq = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(rsq*100,2)))
-rmse = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(rmse,2)))
-R2 = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(R2*100,2)))
-
-# Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
-  geom_line(aes(y=y_pred), lwd=1.5, col="darkred")
-```
-
-```{r predMARS2_ech0_v0, echo=FALSE, include=TRUE}
-dat = ech0
-
-# Predictions
-reg = mars(dat$X ,dat$Y)
-y_pred = predict(reg,test)
-ymax=max(y_pred,ymax)
-ymin=min(y_pred,ymin)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-
-# Indicators
-rsq = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(rsq*100,2)))
-rmse = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(rmse,2)))
-R2 = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(R2*100,2)))
-
-# Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
-  geom_line(aes(y=y_pred), lwd=1.5, col="darkred")
-```
-
-# Sample Adjustement
+# DA-WR approach
 
 To handle the imbalance, we want to draw a $n^*$-sample, $\{(\boldsymbol{X}^*_i,Y^*_i)_{i=1,\cdots,n^*}\}$ from the initial $n$-sample $\{(\boldsymbol{X}_i,Y_i)_{i=1,\cdots,n}\}$, such that the cdf $F^*$ of $\boldsymbol{X^*}$ converges to the target $F_0$ with associated probability $\mathbb{P}_0$.
 
@@ -480,6 +271,23 @@ ggsave("Sorties/Hist_X_Ech_add-vs-Tgt.png",width=7.29, height=4.5)
 
 This last figure shows the new sample $\mathcal{D}^*$ which is closer to target distribution than the initial one. However, the values on the sides, quite rare, are naturally very drawn. We see there are still some parts of the support without observation, especially on the right side. This situation could lead to an overfitting phenomenon because the same observations are replicated several times and could lead to an over-fitting effect. To improve the weighted resampling, we propose to combine it with a synthetic data generation.
 
+Definition of a WR function to reuse it
+
+```{r}
+WR = function(ech,X,N){
+  # Drawing weights
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=ech$X)$y
+  pt = Pt(X)
+  w = pt / pe
+  q = w / sum(w)
+  # Drawing
+  ind = sample(seq(1, nrow(ech)),N,replace=T,prob = q)
+  ech[ind,]
+}
+```
+
+
 ## Data Augmentation - Weighted Resampling algorithm
 
 ### Generation by random noise
@@ -490,7 +298,7 @@ This last figure shows the new sample $\mathcal{D}^*$ which is closer to target 
 
 ```{r GN, echo=FALSE}
 if (relance == T){
-  ### Approche GN (cf fonction Gn.exsClassif : https://rdrr.io/github/paobranco/UBL/src/R/gaussNoiseClassif.R
+  ### Approach GN (cf fonction Gn.exsClassif : https://rdrr.io/github/paobranco/UBL/src/R/gaussNoiseClassif.R
   N = 100000
   pert = 0.3 
   
@@ -506,20 +314,12 @@ if (relance == T){
     }
   }
   
-  # Drawing weights
-  X = ech_GN_SC$X
-  pe = density(X,n=length(X))
-  pe = approx(pe$x,pe$y,xout=ech_GN_SC$X)$y
-  pt = Pt(X)
-  w = pt / pe
-  q = w / sum(w)
-  # Drawing
-  ind = sample(seq(1, nrow(ech_GN_SC)),n_ech,replace=T,prob = q)
-  ech_GN_SC = ech_GN_SC[ind,filtre_var]
+  ech_GN_SC = WR(ech_GN_SC,ech_GN_SC$X,n_ech)
 }
 ```
 
-Graphical analysis
+
+Graphical analysis of rebalanced sample
 
 ```{r GN2, echo=FALSE}
 ech_synth = ech_GN_SC
@@ -588,21 +388,11 @@ if (relance == T){
     }
   }
   
-  # Drawing weights
-  X = GN_GMM$X
-  pe = density(X,n=length(X))
-  pe = approx(pe$x,pe$y,xout=GN_GMM$X)$y
-  pt = Pt(X)
-  w = pt / pe
-  q = w / sum(w)
-  
-  # Drawing
-  ind = sample(seq(1, nrow(GN_GMM)),n_ech,replace=T,prob = q)
-  GN_GMM = GN_GMM[ind,filtre_var]
+  GN_GMM = WR(GN_GMM,GN_GMM$X,n_ech)
 }
 ```
 
-Graphical analysis
+Graphical analysis of clustering
 
 ```{r cluster, echo=FALSE}
 # Clustering analysis
@@ -610,6 +400,8 @@ ggplot(ech_MC, aes(x=X, y=Y, color=cluster)) + geom_point() +
     theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"))
 ggsave(paste0("Sorties/clustering.png"),width=7.29, height=4.5)
 ```
+
+Graphical analysis of rebalanced sample
 
 ```{r GN-GMM2, echo=FALSE}
 ech_synth = GN_GMM
@@ -635,9 +427,12 @@ plot(ech_GN_clust$X,ech_GN_clust$Y)
 points(ech0$X,ech0$Y,col="red")
 ```
 
+Not relevant
+
 #### Multivariate kernel density estimator (ROSE & KDE)
 
 *Estimator inspired by ROSE*
+source code : https://rdrr.io/cran/ROSE/man/ROSE-package.html
 
 ```{r ROSE, echo=FALSE}
 if (relance == T){
@@ -654,18 +449,11 @@ if (relance == T){
   ech_ROSE_SC =data.frame(Xnew.num + ech_add)
   
   
-  # Drawing weights
-  X = ech_ROSE_SC$X
-  pe = density(X,n=length(X))
-  pe = approx(pe$x,pe$y,xout=ech_ROSE_SC$X)$y
-  pt = Pt(X)
-  w = pt / pe
-  q = w / sum(w)
-  # Drawing
-  ind = sample(seq(1, nrow(ech_ROSE_SC)),n_ech,replace=T,prob = q)
-  ech_ROSE_SC = ech_ROSE_SC[ind,filtre_var]
+  ech_ROSE_SC = WR(ech_ROSE_SC,ech_ROSE_SC$X,n_ech)
 }
 ```
+
+Graphical analysis of rebalanced sample
 
 ```{r ROSE_AnalyseY, echo=FALSE}
 ech_synth = ech_ROSE_SC
@@ -703,19 +491,12 @@ if (relance == T){
   }
   
   
-  # Drawing weights
-  X = ROSE_GMM$X
-  pe = density(X,n=length(X))
-  pe = approx(pe$x,pe$y,xout=ROSE_GMM$X)$y
-  pt = Pt(X)
-  w = pt / pe
-  q = w / sum(w)
-  # Drawing
-  ind = sample(seq(1, nrow(ROSE_GMM)),n_ech,replace=T,prob = q)
-  ROSE_GMM = ROSE_GMM[ind,filtre_var]
+  ROSE_GMM = WR(ROSE_GMM,ROSE_GMM$X,n_ech)
 }
 
 ```
+
+Graphical analysis of rebalanced sample
 
 ```{r ROSE_GMM_res, echo=FALSE}
 ech_synth = ROSE_GMM
@@ -724,6 +505,7 @@ graph(ech_synth,name_synth)
 ```
 
 *Smoothed Bootstrap (KDE)*
+Same approach than ROSE but with another bandwidth matrix
 
 ```{r smoothedbootstrap, echo=FALSE}
 if (relance == T){
@@ -737,19 +519,13 @@ if (relance == T){
   
   kde_boot = data.frame(rmvg(100000, ech0, weights =  q))
   
-  # Drawing weights
-  X = kde_boot$X
-  pe = density(X,n=length(X))
-  pe = approx(pe$x,pe$y,xout=kde_boot$X)$y
-  pt = Pt(X)
-  w = pt / pe
-  q = w / sum(w)
-  # Drawing
-  ind = sample(seq(1, nrow(kde_boot)),n_ech,replace=T,prob = q)
-  kde_boot = kde_boot[ind,filtre_var]
+  kde_boot = WR(kde_boot,kde_boot$X,n_ech)
 }
+```
 
-### Graphics
+Graphical analysis of rebalanced sample
+
+```{r smoothedbootstrap result, echo=FALSE}
 ech_synth = kde_boot
 name_synth = "kde_boot"
 graph(ech_synth,name_synth)
@@ -781,19 +557,13 @@ if (relance == T){
   }
   
   
-  # Drawing weights
-  X = kde_boot_GMM$X
-  pe = density(X,n=length(X))
-  pe = approx(pe$x,pe$y,xout=kde_boot_GMM$X)$y
-  pt = Pt(X)
-  w = pt / pe
-  q = w / sum(w)
-  # Drawing
-  ind = sample(seq(1, nrow(kde_boot_GMM)),n_ech,replace=T,prob = q)
-  kde_boot_GMM = kde_boot_GMM[ind,filtre_var]
+  kde_boot_GMM = WR(kde_boot_GMM,kde_boot_GMM$X,n_ech)
 }
+```
 
-### Graphics
+Graphical analysis of rebalanced sample
+
+```{r smoothedbootstrap2, echo=FALSE}
 ech_synth = kde_boot_GMM
 name_synth = "kde_boot_GMM"
 graph(ech_synth,name_synth)
@@ -819,19 +589,12 @@ ggplot(ech_MC, aes(x=X, y=Y, color=cluster)) + geom_point()
 if (relance == T){
   DS_GMM = as.data.frame(sim(modelName=DMC$modelName,parameters=DMC$parameters,n=100000))
   colnames(DS_GMM) = c("cluster",colnames(ech0))
-  DS_GMM0 = DS_GMM
-  # Drawing weights
-  X = DS_GMM$X
-  pe = density(X,n=length(X))
-  pe = approx(pe$x,pe$y,xout=DS_GMM$X)$y
-  pt = Pt(X)
-  w = pt / pe
-  q = w / sum(w)
-  # Drawing
-  ind = sample(seq(1, nrow(DS_GMM)),n_ech,replace=T,prob = q)
-  GMM = DS_GMM[ind,filtre_var]
+
+  GMM = WR(DS_GMM,DS_GMM$X,n_ech)
 }
 ```
+
+Graphical analysis of rebalanced sample
 
 ```{r GMM_sim2, echo=FALSE}
 ### Graphics
@@ -861,8 +624,6 @@ if (relance == T){
       temp = ech[ech$cluster == i,]
     } else {temp = ech}
     temp = temp[,c("X","Y")]
-    p = length(colnames(temp))
-    p_py = r_to_py(p,convert=TRUE)
     py_run_string("from sklearn.decomposition import FactorAnalysis")
     ech_py = r_to_py(temp,convert=TRUE)
     py_run_string("p=r.ech_py.shape[1]")
@@ -891,18 +652,11 @@ if (relance == T){
   DS_FA = as.data.frame(DS_FA)
   colnames(DS_FA) = c(colnames(ech0),"cluster")
   
-  # Drawing weights
-  X = DS_FA$X
-  pe = density(X,n=length(X))
-  pe = approx(pe$x,pe$y,xout=DS_FA$X)$y
-  pt = Pt(X)
-  w = pt / pe
-  q = w / sum(w)
-  # Drawing
-  ind = sample(seq(1, nrow(DS_FA)),n_ech,replace=T,prob = q)
-  DS_FA = DS_FA[ind,filtre_var]
+  DS_FA = WR(DS_FA,DS_FA$X,n_ech)
 }
 ```
+
+Graphical analysis of rebalanced sample
 
 ```{r FA_simple_res, echo=FALSE}
 plot(DS_FA$X,DS_FA$Y)
@@ -961,18 +715,11 @@ if (relance == T){
   DS_FA_GMM = as.data.frame(DS_FA)
   colnames(DS_FA_GMM) = c(colnames(ech0),"cluster")
   
-  # Drawing weights
-  X = DS_FA_GMM$X
-  pe = density(X,n=length(X))
-  pe = approx(pe$x,pe$y,xout=DS_FA_GMM$X)$y
-  pt = Pt(X)
-  w = pt / pe
-  q = w / sum(w)
-  # Drawing
-  ind = sample(seq(1, nrow(DS_FA_GMM)),n_ech,replace=T,prob = q)
-  FA_GMM = DS_FA_GMM[ind,filtre_var]
+  FA_GMM = WR(DS_FA_GMM,DS_FA_GMM$X,n_ech)
 }
 ```
+
+Graphical analysis of rebalanced sample
 
 ```{r FA_cluster_res, echo=FALSE}
 ### Graphics
@@ -981,29 +728,24 @@ name_synth = "FA_GMM"
 graph(ech_synth,name_synth)
 ```
 
+
+
 ### Copula
 
 ```{r copula, include=FALSE}
 if (relance == T){
   py_run_string("from sdv.tabular import GaussianCopula")
-  ech_py = r_to_py(ech0,convert=TRUE)
+  ech0_1000 = ech0*1000 # bug with [0;1]-continuous variable within the new version of gaussiancopula (v.0.5.2 vs v.0.5.1)
+  ech0_py = r_to_py(ech0_1000,convert=TRUE)
   py_run_string("copule = GaussianCopula()")
-  py_run_string("copule.fit(r.ech_py)")
+  py_run_string("copule.fit(r.ech0_py)")
   py_run_string("ech_copule_py = copule.sample(100000)")
-  ech_copule = py$ech_copule_py
-  
-  # Drawing weights
-  X = ech_copule$X
-  pe = density(X,n=length(X))
-  pe = approx(pe$x,pe$y,xout=ech_copule$X)$y
-  pt = Pt(X)
-  w = pt / pe
-  q = w / sum(w)
-  # Drawing
-  ind = sample(seq(1, nrow(ech_copule)),n_ech,replace=T,prob = q)
-  ech_copule = ech_copule[ind,filtre_var]
+  ech_copule = py$ech_copule_py/1000
+  ech_copule = WR(ech_copule,ech_copule$X,n_ech)
 }
 ```
+
+Graphical analysis of rebalanced sample
 
 ```{r copula_res, echo=FALSE}
 ### Graphics
@@ -1012,33 +754,52 @@ name_synth = "ech_copule"
 graph(ech_synth,name_synth)
 ```
 
+By definition, the copula simulations do not go beyond the min-max values 
+
+
+
 ### Conditional Generative Adversarial Net (GAN)
 
 package CTGAN from SDV
 
 *no conditional*
 
+The following chunk worked with sdv v0.5.1 and reticulate v1.25. With sdv v.0.5.2 and sdv 0.5.2, it does not work. To get a synthetic data GAN sample, we need to run the next chunk in python (that does not work in R and work in Python)
+
 ```{r GAN, echo=FALSE}
-if (relance == T){
-  py_run_string("from ctgan import CTGANSynthesizer")
-  ech0_py = r_to_py(ech0,convert=TRUE)
-  py_run_string("ctgan = CTGANSynthesizer(epochs=10000)")
-  py_run_string("ctgan.fit(r.ech0_py)")
-  py_run_string("ech_ctgan_py = ctgan.sample(100000)")
-  ech_GAN = py$ech_ctgan_py
-  
-  # Drawing weights
-  X = ech_GAN$X
-  pe = density(X,n=length(X))
-  pe = approx(pe$x,pe$y,xout=ech_GAN$X)$y
-  pt = Pt(X)
-  w = pt / pe
-  q = w / sum(w)
-  # Drawing
-  ind = sample(seq(1, nrow(ech_GAN)),n_ech,replace=T,prob = q)
-  ech_GAN = ech_GAN[ind,filtre_var]
-}
+# if (relance == T){
+#   py_run_string("from sdv.tabular import CTGAN")
+#   ech0_py = r_to_py(ech0,convert=TRUE)
+#   py_run_string("ctgan = CTGAN(epochs=1000)")
+#   py_run_string("ctgan.fit(r.ech0_py)")
+#   py_run_string("ech_ctgan_py = ctgan.sample(100000)")
+#   ech_GAN = py$ech_ctgan_py
+#   ech_GAN = WR(ech_GAN,ech_GAN$X,n_ech)
+# }
 ```
+
+
+```{R GAN_python}
+### Export dataframe for python
+write.csv(ech0,"ech0.csv",row.names = F)
+
+### Import and run this code in python environment
+# import os
+# import pandas as pd
+# os.chdir("C:/Users/samgo/OneDrive/Perso/Thèse/Travaux/Exogenous Sampling/Illustration")
+# ech0 = pd.read_csv("ech0.csv")
+# from sdv.tabular import CTGAN
+# ctgan = CTGAN(epochs=10000)
+# ctgan.fit(ech0*1000)
+# ech_ctgan_py = ctgan.sample(100000)/1000
+# ech_ctgan_py.to_csv("ech_ctgan_py.csv",index=False)
+
+### Import and WR
+ech_GAN = read.csv("ech_ctgan_py.csv")
+ech_GAN = WR(ech_GAN,ech_GAN$X,n_ech)
+```
+
+Graphical analysis of rebalanced sample
 
 ```{r GAN_res, echo=FALSE}
 ### Graphics
@@ -1051,29 +812,48 @@ On constate que la génération de $Y$ est très instable.
 
 *application by cluster*
 
+The following chunk worked with sdv v0.5.1 and reticulate v1.25. With sdv v.0.5.2 and sdv 0.5.2, it does not work. To get a synthetic data GAN sample, we need to run the next chunk in python (that does not work in R and work in Python)
+
 ```{r GAN_cond, echo=FALSE}
-if (relance == T){
-  ech_MC = cbind(ech0[,c("X","Y")],"cluster" = DMC$classification)
-  py_run_string("from ctgan import CTGANSynthesizer")
-  ech_MC_py = r_to_py(ech_MC,convert=TRUE)
-  py_run_string("discrete_columns = ['cluster']")
-  py_run_string("ctgan = CTGANSynthesizer(epochs=10000)")
-  py_run_string("ctgan.fit(r.ech_MC_py,discrete_columns)")
-  py_run_string("ech_ctgan_py = ctgan.sample(50000)")
-  ech_ctganSynth_GMM = py$ech_ctgan_py
-  
-  # Drawing weights
-  X = ech_ctganSynth_GMM$X
-  pe = density(X,n=length(X))
-  pe = approx(pe$x,pe$y,xout=ech_ctganSynth_GMM$X)$y
-  pt = Pt(X)
-  w = pt / pe
-  q = w / sum(w)
-  # Drawing
-  ind = sample(seq(1, nrow(ech_ctganSynth_GMM)),n_ech,replace=T,prob = q)
-  ech_ctganSynth_GMM = ech_ctganSynth_GMM[ind,filtre_var]
-}
+# if (relance == T){
+#   ech_MC = cbind(ech0[,c("X","Y")],"cluster" = DMC$classification)
+#   py_run_string("from ctgan import CTGANSynthesizer")
+#   ech_MC_py = r_to_py(ech_MC,convert=TRUE)
+#   py_run_string("discrete_columns = ['cluster']")
+#   py_run_string("ctgan = CTGANSynthesizer(epochs=10000)")
+#   py_run_string("ctgan.fit(r.ech_MC_py,discrete_columns)")
+#   py_run_string("ech_ctgan_py = ctgan.sample(50000)")
+#   ech_ctganSynth_GMM = py$ech_ctgan_py
+#   
+#   ech_ctganSynth_GMM = WR(ech_ctganSynth_GMM,ech_ctganSynth_GMM$X,n_ech)
+# }
 ```
+
+```{r GAN_cond_python}
+### Export dataframe for python
+ech_MC = cbind(ech0[,c("X","Y")],"cluster" = DMC$classification)
+write.csv(ech_MC,"ech_MC.csv",row.names = F)
+
+### Import and run this code in python environment
+# import os
+# import pandas as pd
+# os.chdir("C:/Users/samgo/OneDrive/Perso/Thèse/Travaux/Exogenous Sampling/Illustration")
+# ech_MC = pd.read_csv("ech_MC.csv")
+# from sdv.tabular import CTGAN
+# from ctgan import CTGANSynthesizer
+# ctgan = CTGANSynthesizer(epochs=10000)
+# discrete_columns = ['cluster']
+# ctgan.fit(ech_MC*1000,discrete_columns)
+# ech_ctganSynth_GMM = ctgan.sample(100000)/1000
+# ech_ctganSynth_GMM.to_csv("ech_ctganSynth_GMM.csv",index=False)
+# ech_ctganSynth_GMM.head()
+
+### Import and WR
+ech_ctganSynth_GMM = read.csv("ech_ctganSynth_GMM.csv")
+ech_ctganSynth_GMM = WR(ech_ctganSynth_GMM,ech_ctganSynth_GMM$X,n_ech)
+```
+
+Graphical analysis of rebalanced sample
 
 ```{r GAN_cond_res, echo=FALSE}
 ### Graphics
@@ -1118,19 +898,13 @@ if (relance == T){
   ech_smote$id = NULL
 }
   
-  # Drawing weights
-  X = ech_smote$X
-  pe = density(X,n=length(X))
-  pe = approx(pe$x,pe$y,xout=ech_smote$X)$y
-  pt = Pt(X)
-  w = pt / pe
-  q = w / sum(w)
-  # Drawing
-  ind = sample(seq(1, nrow(ech_smote)),n_ech,replace=T,prob = q)
-  ech_smote = ech_smote[ind,filtre_var]
+  ech_smote = WR(ech_smote,ech_smote$X,n_ech)
+```
 
+  
+Graphical analysis of rebalanced sample
 
-### Graphics
+```{r Smote_graph, echo=FALSE}
 ech_synth = ech_smote
 name_synth = "ech_smote"
 graph(ech_synth,name_synth)
@@ -1168,19 +942,15 @@ if (relance == T){
   }
   ech_smote_GMM$id = NULL
   
-  # Drawing weights
-  X = ech_smote_GMM$X
-  pe = density(X,n=length(X))
-  pe = approx(pe$x,pe$y,xout=ech_smote_GMM$X)$y
-  pt = Pt(X)
-  w = pt / pe
-  q = w / sum(w)
-  # Drawing
-  ind = sample(seq(1, nrow(ech_smote_GMM)),n_ech,replace=T,prob = q)
-  ech_smote_GMM = ech_smote_GMM[ind,filtre_var]
+  ech_smote_GMM = WR(ech_smote_GMM,ech_smote_GMM$X,n_ech)
 }
 
-### Graphics
+```
+
+  
+Graphical analysis of rebalanced sample
+
+```{r Smote_clust_graph, echo=FALSE}
 ech_synth = ech_smote_GMM
 name_synth = "ech_smote_GMM"
 graph(ech_synth,name_synth)
@@ -1201,12 +971,14 @@ plot(ech_smote_clust$X,ech_smote_clust$Y)
 points(ech0$X,ech0$Y,col="red")
 ```
 
-#### Approches Utulity-Based Learning
+Results non relevant
+
+#### Approachs Utulity-Based Learning
 
 1)  Error : "All the points have relevance 0. Please, redefine your relevance function!" 2 ) No possibility to define q as utility function : Error in GaussNoiseRegress(form = Y \~ ., dat = ech0, rel = rel) : All the points have relevance 1. Please, redefine your relevance function!
 2)  too complicated to define q as a utility function (UBL an R package for ... : p.50)
 
-Sur $Y$ :
+On $Y$ :
 
 ```{r SmoGN_Y, echo=FALSE}
 if (relance == T){
@@ -1214,25 +986,24 @@ if (relance == T){
     ech_smoGN_Y = SMOGNRegress(Y ~ .,ech0)
     hist(ech_smoGN_Y$X,breaks=50, col = "antiquewhite",freq=F,right = T)
     points(ech_smoGN_Y$X,dbeta(ech_smoGN_Y$X,alpha_pop,beta_pop),col="red")
-    hist(ech_smoGN_Y$X, col=rgb(0,0,1,1/4),breaks = 50,prob=T) 
-    hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 50,prob=T, add=T) 
+    hist(ech_smoGN_Y$X, col=rgb(0,0,1,1/4),breaks = 50,prob=T)
+    hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 50,prob=T, add=T)
     hist(ech0$X,col=rgb(1,0,0,1/4),breaks = 50,prob=T, add=T)
     plot(ech_smoGN_Y$X,ech_smoGN_Y$Y)
     points(ech0$X,ech0$Y,col="red")
   })
 }
 ```
-
-Sur $X$ :
+On $X$ :
 
 ```{r SmoGN, echo=FALSE}
 if (relance == T){
   ech_smoGN = SMOGNRegress(X ~ .,ech0)
-} 
+}
 hist(ech_smoGN$X,breaks=50, col = "antiquewhite",freq=F,right = T)
 points(ech_smoGN$X,dbeta(ech_smoGN$X,alpha_pop,beta_pop),col="red")
-hist(ech_smoGN$X, col=rgb(0,0,1,1/4),breaks = 50,prob=T) 
-hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 50,prob=T, add=T) 
+hist(ech_smoGN$X, col=rgb(0,0,1,1/4),breaks = 50,prob=T)
+hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 50,prob=T, add=T)
 hist(ech0$X,col=rgb(1,0,0,1/4),breaks = 50,prob=T, add=T)
 plot(ech_smoGN$X,ech_smoGN$Y)
 points(ech0$X,ech0$Y,col="red")
@@ -1280,18 +1051,11 @@ if (relance == T){
   ech_RF2 = syn(ech_MC[,c("X","Y","cluster")],method="rf", visit.sequence = c("cluster","X","Y"),k=10000)
   ech_RF2 = ech_RF2$syn
   
-  # Drawing weights
-  X = ech_RF2$X
-  pe = density(X,n=length(X))
-  pe = approx(pe$x,pe$y,xout=ech_RF2$X)$y
-  pt = Pt(X)
-  w = pt / pe
-  q = w / sum(w)
-  # Drawing
-  ind = sample(seq(1, nrow(ech_RF2)),n_ech,replace=T,prob = q)
-  ech_RF2 = ech_RF2[ind,filtre_var]
+  ech_RF2 = WR(ech_RF2,ech_RF2$X,n_ech)
 }
 ```
+
+Graphical analysis of rebalanced sample
 
 ```{r Synthpop-RF2_res, echo=FALSE}
 ### Graphics
@@ -1299,6 +1063,26 @@ ech_synth = ech_RF2
 name_synth = "ech_RF"
 graph(ech_synth,name_synth)
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # Performance evaluation
 
