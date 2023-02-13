@@ -283,8 +283,8 @@ df = rbind(df_train,df_test)
 
 ggplot(df, aes(X, color=dataset, fill=dataset)) + 
   geom_histogram(alpha = 0.5,aes(y = ..density..),bins=100,position="identity")+
-  scale_color_manual(values = c("darkred","darkgreen"),labels = c(unname(TeX(c(r"($\textit{D}^i$)"))), unname(TeX(c(r"($\textit{D}^p$)"))))) + 
-  scale_fill_manual(values = c("darkred","darkgreen"),labels = c(unname(TeX(c(r"($\textit{D}^i$)"))), unname(TeX(c(r"($\textit{D}^p$)"))))) +
+  scale_color_manual(values = c("darkred","darkgreen"),labels = c(unname(TeX(c(r"($\textit{D}^i$)"))), unname(TeX(c(r"($\textit{D}^t$)"))))) + 
+  scale_fill_manual(values = c("darkred","darkgreen"),labels = c(unname(TeX(c(r"($\textit{D}^i$)"))), unname(TeX(c(r"($\textit{D}^t$)"))))) +
   theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
 ```
 
@@ -1278,7 +1278,6 @@ graph(ech_synth,name_synth)
 dat = ech_rep
 name_dat = "GAM_ech_rep"
 
-
 ## Predictions
 reg = gam(Y ~  s(X) , data = dat)
 p <- predict(reg, test, se.fit=T)
@@ -1289,13 +1288,7 @@ y_pred = p$fit
 res = summary(reg)
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_pop-1.png)<!-- -->
-
-``` r
 ## Indicators
 gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
 ```
@@ -1324,33 +1317,6 @@ gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_pop-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3" )) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_pop-3.png)<!-- -->
-
-``` r
-ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-``` r
 graph_Y = function (name_dat){
   ## target variable analysis
   print(ggplot() +
@@ -1369,7 +1335,7 @@ graph_Y(name_dat)
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_pop-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_pop-1.png)<!-- -->
 
 #### Imbalanced Sample
 
@@ -1386,13 +1352,7 @@ y_pred = p$fit
 res = summary(reg)
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech0-1.png)<!-- -->
-
-``` r
 ## Indicators
 gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
 ```
@@ -1420,37 +1380,14 @@ gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
 gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
-
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech0-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech0-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech0-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_ech0-1.png)<!-- -->
 
 #### Weighted Resampling (WR) sample
 
@@ -1467,13 +1404,7 @@ y_pred = p$fit
 res = summary(reg)
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_add-1.png)<!-- -->
-
-``` r
 ## Indicators
 gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
 ```
@@ -1501,37 +1432,14 @@ gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
 gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
-
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_add-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_add-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_add-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_ech_add-1.png)<!-- -->
 
 #### GN-WR sample
 
@@ -1548,13 +1456,7 @@ y_pred = p$fit
 res = summary(reg)
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_GN_SC-1.png)<!-- -->
-
-``` r
 ## Indicators
 gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
 ```
@@ -1582,37 +1484,14 @@ gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
 gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
-
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_GN_SC-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_GN_SC-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_GN_SC-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_ech_GN_SC-1.png)<!-- -->
 
 #### GN_GMM-WR sample
 
@@ -1629,13 +1508,7 @@ y_pred = p$fit
 res = summary(reg)
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_GN_GMM-1.png)<!-- -->
-
-``` r
 ## Indicators
 gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
 ```
@@ -1663,37 +1536,14 @@ gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
 gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
-
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_GN_GMM-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_GN_GMM-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_GN_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_GN_GMM-1.png)<!-- -->
 
 #### ROSE-WR sample
 
@@ -1710,13 +1560,7 @@ y_pred = p$fit
 res = summary(reg)
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_ROSE_SC-1.png)<!-- -->
-
-``` r
 ## Indicators
 gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
 ```
@@ -1744,37 +1588,14 @@ gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
 gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
-
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_ROSE_SC-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_ROSE_SC-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_ROSE_SC-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_ech_ROSE_SC-1.png)<!-- -->
 
 #### ROSE_GMM-WR sample
 
@@ -1791,13 +1612,7 @@ y_pred = p$fit
 res = summary(reg)
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ROSE_GMM-1.png)<!-- -->
-
-``` r
 ## Indicators
 gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
 ```
@@ -1826,35 +1641,13 @@ gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ROSE_GMM-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ROSE_GMM-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ROSE_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_ROSE_GMM-1.png)<!-- -->
 
 #### KDE-WR sample
 
@@ -1871,13 +1664,7 @@ y_pred = p$fit
 res = summary(reg)
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_kde_boot-1.png)<!-- -->
-
-``` r
 ## Indicators
 gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
 ```
@@ -1905,37 +1692,14 @@ gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
 gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
-
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_kde_boot-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_kde_boot-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_kde_boot-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_kde_boot-1.png)<!-- -->
 
 #### KDE_GMM-WR sample
 
@@ -1952,13 +1716,7 @@ y_pred = p$fit
 res = summary(reg)
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_kde_boot_GMM-1.png)<!-- -->
-
-``` r
 ## Indicators
 gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
 ```
@@ -1986,37 +1744,14 @@ gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
 gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
-
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_kde_boot_GMM-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_kde_boot_GMM-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_kde_boot_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_kde_boot_GMM-1.png)<!-- -->
 
 #### GMM-WR sample
 
@@ -2033,13 +1768,7 @@ y_pred = p$fit
 res = summary(reg)
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_GMM-1.png)<!-- -->
-
-``` r
 ## Indicators
 gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
 ```
@@ -2067,37 +1796,14 @@ gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
 gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
-
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_GMM-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_GMM-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_GMM-1.png)<!-- -->
 
 #### FA_GMM-WR sample
 
@@ -2114,13 +1820,7 @@ y_pred = p$fit
 res = summary(reg)
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_FA_GMM-1.png)<!-- -->
-
-``` r
 ## Indicators
 gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
 ```
@@ -2148,37 +1848,14 @@ gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
 gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
-
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_FA_GMM-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_FA_GMM-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_FA_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_FA_GMM-1.png)<!-- -->
 
 #### Copula-WR sample
 
@@ -2195,13 +1872,7 @@ y_pred = p$fit
 res = summary(reg)
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_copule-1.png)<!-- -->
-
-``` r
 ## Indicators
 gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
 ```
@@ -2229,37 +1900,14 @@ gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
 gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
-
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_copule-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_copule-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_copule-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_ech_copule-1.png)<!-- -->
 
 #### GAN-WR sample
 
@@ -2276,13 +1924,7 @@ y_pred = p$fit
 res = summary(reg)
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_GAN-1.png)<!-- -->
-
-``` r
 ## Indicators
 gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
 ```
@@ -2310,37 +1952,14 @@ gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
 gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
-
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_GAN-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_GAN-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_GAN-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_ech_GAN-1.png)<!-- -->
 
 #### GAN_GMM-WR sample
 
@@ -2357,13 +1976,7 @@ y_pred = p$fit
 res = summary(reg)
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_ctganSynth_GMM-1.png)<!-- -->
-
-``` r
 ## Indicators
 gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
 ```
@@ -2391,37 +2004,14 @@ gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
 gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
-
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_ctganSynth_GMM-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_ctganSynth_GMM-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_ctganSynth_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_ech_ctganSynth_GMM-1.png)<!-- -->
 
 #### SMOTE-WR sample
 
@@ -2438,13 +2028,7 @@ y_pred = p$fit
 res = summary(reg)
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_smote-1.png)<!-- -->
-
-``` r
 ## Indicators
 gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
 ```
@@ -2473,35 +2057,13 @@ gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_smote-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_smote-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_smote-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_ech_smote-1.png)<!-- -->
 
 #### SMOTE_GMM-WR sample
 
@@ -2518,13 +2080,7 @@ y_pred = p$fit
 res = summary(reg)
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_smote_GMM-1.png)<!-- -->
-
-``` r
 ## Indicators
 gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
 ```
@@ -2552,37 +2108,14 @@ gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
 gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
-
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_smote_GMM-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_smote_GMM-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_smote_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_ech_smote_GMM-1.png)<!-- -->
 
 #### RF-WR sample
 
@@ -2599,13 +2132,7 @@ y_pred = p$fit
 res = summary(reg)
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_RF2-1.png)<!-- -->
-
-``` r
 ## Indicators
 gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
 ```
@@ -2633,37 +2160,14 @@ gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
 gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
-
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_RF2-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_RF2-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_RF2-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_ech_RF2-1.png)<!-- -->
 
 ## Random Forest Learning
 
@@ -2681,21 +2185,13 @@ pt = Pt(X)
 w = pt / pe
 q = w / sum(w)
 reg = randomForest( Y ~ X, data = dat, weights = q,nodesize=2)
-
 p = predict(reg, test, predict.all=TRUE)
 y_pred = p$aggregate
 upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
 lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
-
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predRF_pop-1.png)<!-- -->
-
-``` r
 ## Indicators
 RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
 ```
@@ -2724,39 +2220,6 @@ RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predRF_pop-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
-  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
-  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
-  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_pop-3.png)<!-- -->
-
-``` r
-ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-``` r
 graph_Y_RF = function (name_dat){
   ## target variable analysis 
   print(ggplot() +
@@ -2781,7 +2244,7 @@ graph_Y_RF(name_dat)
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_pop-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_pop-1.png)<!-- -->
 
 #### Imbalanced sample
 
@@ -2797,21 +2260,13 @@ pt = Pt(X)
 w = pt / pe
 q = w / sum(w)
 reg = randomForest( Y ~ X, data = dat, weights = q,nodesize=2)
-
 p = predict(reg, test, predict.all=TRUE)
 y_pred = p$aggregate
 upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
 lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
-
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech0-1.png)<!-- -->
-
-``` r
 ## Indicators
 RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
 ```
@@ -2840,32 +2295,6 @@ RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech0-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
-  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
-  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
-  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech0-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y_RF(name_dat)
 ```
 
@@ -2878,7 +2307,7 @@ graph_Y_RF(name_dat)
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech0-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_ech0-1.png)<!-- -->
 
 #### Weighted Resampling (WR) sample
 
@@ -2894,21 +2323,13 @@ pt = Pt(X)
 w = pt / pe
 q = w / sum(w)
 reg = randomForest( Y ~ X, data = dat, weights = q,nodesize=2)
-
 p = predict(reg, test, predict.all=TRUE)
 y_pred = p$aggregate
 upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
 lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
-
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_add-1.png)<!-- -->
-
-``` r
 ## Indicators
 RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
 ```
@@ -2937,32 +2358,6 @@ RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_add-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
-  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
-  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
-  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_add-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y_RF(name_dat)
 ```
 
@@ -2975,7 +2370,7 @@ graph_Y_RF(name_dat)
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_add-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_ech_add-1.png)<!-- -->
 
 #### GN-WR sample
 
@@ -2991,7 +2386,6 @@ pt = Pt(X)
 w = pt / pe
 q = w / sum(w)
 reg = randomForest( Y ~ X, data = dat, weights = q,nodesize=2)
-
 p = predict(reg, test, predict.all=TRUE)
 y_pred = p$aggregate
 upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
@@ -2999,13 +2393,7 @@ lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
 
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_GN_SC-1.png)<!-- -->
-
-``` r
 ## Indicators
 RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
 ```
@@ -3034,32 +2422,6 @@ RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_GN_SC-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
-  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
-  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
-  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_GN_SC-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y_RF(name_dat)
 ```
 
@@ -3072,7 +2434,7 @@ graph_Y_RF(name_dat)
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_GN_SC-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_ech_GN_SC-1.png)<!-- -->
 
 #### GN_GMM-WR sample
 
@@ -3092,16 +2454,9 @@ p = predict(reg, test, predict.all=TRUE)
 y_pred = p$aggregate
 upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
 lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
-
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predRF_GN_GMM-1.png)<!-- -->
-
-``` r
 ## Indicators
 RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
 ```
@@ -3130,32 +2485,6 @@ RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predRF_GN_GMM-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
-  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
-  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
-  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_GN_GMM-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y_RF(name_dat)
 ```
 
@@ -3168,7 +2497,7 @@ graph_Y_RF(name_dat)
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_GN_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_GN_GMM-1.png)<!-- -->
 
 #### ROSE-WR sample
 
@@ -3188,16 +2517,9 @@ p = predict(reg, test, predict.all=TRUE)
 y_pred = p$aggregate
 upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
 lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
-
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_ROSE_SC-1.png)<!-- -->
-
-``` r
 ## Indicators
 RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
 ```
@@ -3226,32 +2548,6 @@ RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_ROSE_SC-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
-  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
-  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
-  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_ROSE_SC-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y_RF(name_dat)
 ```
 
@@ -3264,7 +2560,7 @@ graph_Y_RF(name_dat)
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_ROSE_SC-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_ech_ROSE_SC-1.png)<!-- -->
 
 #### ROSE_GMM-WR sample
 
@@ -3284,16 +2580,9 @@ p = predict(reg, test, predict.all=TRUE)
 y_pred = p$aggregate
 upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
 lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
-
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ROSE_GMM-1.png)<!-- -->
-
-``` r
 ## Indicators
 RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
 ```
@@ -3322,32 +2611,6 @@ RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ROSE_GMM-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
-  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
-  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
-  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ROSE_GMM-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y_RF(name_dat)
 ```
 
@@ -3360,7 +2623,7 @@ graph_Y_RF(name_dat)
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ROSE_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_ROSE_GMM-1.png)<!-- -->
 
 #### KDE-WR sample
 
@@ -3380,16 +2643,9 @@ p = predict(reg, test, predict.all=TRUE)
 y_pred = p$aggregate
 upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
 lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
-
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predRF_kde_boot-1.png)<!-- -->
-
-``` r
 ## Indicators
 RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
 ```
@@ -3418,32 +2674,6 @@ RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predRF_kde_boot-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
-  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
-  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
-  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_kde_boot-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y_RF(name_dat)
 ```
 
@@ -3456,7 +2686,7 @@ graph_Y_RF(name_dat)
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_kde_boot-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_kde_boot-1.png)<!-- -->
 
 #### KDE_GMM-WR sample
 
@@ -3479,13 +2709,7 @@ lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
 
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predRF_kde_boot_GMM-1.png)<!-- -->
-
-``` r
 ## Indicators
 RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
 ```
@@ -3514,32 +2738,6 @@ RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predRF_kde_boot_GMM-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
-  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
-  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
-  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_kde_boot_GMM-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y_RF(name_dat)
 ```
 
@@ -3552,7 +2750,7 @@ graph_Y_RF(name_dat)
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_kde_boot_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_kde_boot_GMM-1.png)<!-- -->
 
 #### GMM-WR sample
 
@@ -3572,16 +2770,9 @@ p = predict(reg, test, predict.all=TRUE)
 y_pred = p$aggregate
 upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
 lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
-
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predRF_GMM-1.png)<!-- -->
-
-``` r
 ## Indicators
 RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
 ```
@@ -3610,32 +2801,6 @@ RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predRF_GMM-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
-  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
-  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
-  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_GMM-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y_RF(name_dat)
 ```
 
@@ -3648,7 +2813,7 @@ graph_Y_RF(name_dat)
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_GMM-1.png)<!-- -->
 
 #### FA_GMM-WR sample
 
@@ -3668,16 +2833,9 @@ p = predict(reg, test, predict.all=TRUE)
 y_pred = p$aggregate
 upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
 lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
-
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predRF_FA_GMM-1.png)<!-- -->
-
-``` r
 ## Indicators
 RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
 ```
@@ -3706,32 +2864,6 @@ RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predRF_FA_GMM-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
-  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
-  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
-  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_FA_GMM-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y_RF(name_dat)
 ```
 
@@ -3744,7 +2876,7 @@ graph_Y_RF(name_dat)
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_FA_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_FA_GMM-1.png)<!-- -->
 
 #### Copula-WR sample
 
@@ -3764,16 +2896,9 @@ p = predict(reg, test, predict.all=TRUE)
 y_pred = p$aggregate
 upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
 lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
-
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_copule-1.png)<!-- -->
-
-``` r
 ## Indicators
 RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
 ```
@@ -3802,32 +2927,6 @@ RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_copule-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
-  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
-  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
-  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_copule-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y_RF(name_dat)
 ```
 
@@ -3840,7 +2939,7 @@ graph_Y_RF(name_dat)
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_copule-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_ech_copule-1.png)<!-- -->
 
 #### GAN-WR sample
 
@@ -3860,16 +2959,9 @@ p = predict(reg, test, predict.all=TRUE)
 y_pred = p$aggregate
 upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
 lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
-
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_GAN-1.png)<!-- -->
-
-``` r
 ## Indicators
 RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
 ```
@@ -3898,32 +2990,6 @@ RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_GAN-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
-  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
-  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
-  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_GAN-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y_RF(name_dat)
 ```
 
@@ -3936,7 +3002,7 @@ graph_Y_RF(name_dat)
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_GAN-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_ech_GAN-1.png)<!-- -->
 
 #### GAN_GMM-WR sample
 
@@ -3956,16 +3022,9 @@ p = predict(reg, test, predict.all=TRUE)
 y_pred = p$aggregate
 upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
 lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
-
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_ctganSynth_GMM-1.png)<!-- -->
-
-``` r
 ## Indicators
 RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
 ```
@@ -3994,32 +3053,6 @@ RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_ctganSynth_GMM-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
-  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
-  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
-  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_ctganSynth_GMM-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y_RF(name_dat)
 ```
 
@@ -4032,7 +3065,7 @@ graph_Y_RF(name_dat)
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_ctganSynth_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_ech_ctganSynth_GMM-1.png)<!-- -->
 
 #### SMOTE-WR sample
 
@@ -4052,16 +3085,9 @@ p = predict(reg, test, predict.all=TRUE)
 y_pred = p$aggregate
 upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
 lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
-
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_smote-1.png)<!-- -->
-
-``` r
 ## Indicators
 RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
 ```
@@ -4090,32 +3116,6 @@ RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_smote-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
-  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
-  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
-  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_smote-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y_RF(name_dat)
 ```
 
@@ -4128,7 +3128,7 @@ graph_Y_RF(name_dat)
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_smote-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_ech_smote-1.png)<!-- -->
 
 #### SMOTE-GMM-WR sample
 
@@ -4148,16 +3148,9 @@ p = predict(reg, test, predict.all=TRUE)
 y_pred = p$aggregate
 upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
 lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
-
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_smote_GMM-1.png)<!-- -->
-
-``` r
 ## Indicators
 RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
 ```
@@ -4186,32 +3179,6 @@ RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_smote_GMM-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
-  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
-  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
-  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_smote_GMM-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y_RF(name_dat)
 ```
 
@@ -4224,7 +3191,7 @@ graph_Y_RF(name_dat)
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_smote_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_ech_smote_GMM-1.png)<!-- -->
 
 #### RF-WR sample
 
@@ -4244,16 +3211,9 @@ p = predict(reg, test, predict.all=TRUE)
 y_pred = p$aggregate
 upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
 lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
-
 ymax=max(y_pred,y_test)
 ymin=min(y_pred,y_test)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_RF2-1.png)<!-- -->
-
-``` r
 ## Indicators
 RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
 ```
@@ -4282,32 +3242,6 @@ RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_RF2-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
-  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
-  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
-  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_RF2-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y_RF(name_dat)
 ```
 
@@ -4320,7 +3254,7 @@ graph_Y_RF(name_dat)
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_RF2-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_ech_RF2-1.png)<!-- -->
 
 ## Multivariate Adaptative Regression Spline Learning
 
@@ -4338,13 +3272,7 @@ lwr <- p$lwr
 y_pred = p$fit
 ymax=max(y_pred,ymax)
 ymin=min(y_pred,ymin)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_pop-1.png)<!-- -->
-
-``` r
 ## Indicators
 mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
 ```
@@ -4373,36 +3301,13 @@ mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_pop-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_pop-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_pop-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_pop-1.png)<!-- -->
 
 #### Imbalanced sample
 
@@ -4418,13 +3323,7 @@ lwr <- p$lwr
 y_pred = p$fit
 ymax=max(y_pred,ymax)
 ymin=min(y_pred,ymin)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech0-1.png)<!-- -->
-
-``` r
 ## Indicators
 mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
 ```
@@ -4453,36 +3352,13 @@ mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech0-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech0-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech0-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_ech0-1.png)<!-- -->
 
 #### Weighted Resampling (WR) sample
 
@@ -4498,13 +3374,7 @@ lwr <- p$lwr
 y_pred = p$fit
 ymax=max(y_pred,ymax)
 ymin=min(y_pred,ymin)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_add-1.png)<!-- -->
-
-``` r
 ## Indicators
 mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
 ```
@@ -4532,38 +3402,14 @@ mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
 mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
-
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_add-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_add-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_add-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_add-1.png)<!-- -->
 
 #### GN-WR sample
 
@@ -4579,13 +3425,7 @@ lwr <- p$lwr
 y_pred = p$fit
 ymax=max(y_pred,ymax)
 ymin=min(y_pred,ymin)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_GN_SC-1.png)<!-- -->
-
-``` r
 ## Indicators
 mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
 ```
@@ -4614,36 +3454,13 @@ mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_GN_SC-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_GN_SC-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_GN_SC-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_GN_SC-1.png)<!-- -->
 
 #### GN_GMM-WR sample
 
@@ -4659,13 +3476,7 @@ lwr <- p$lwr
 y_pred = p$fit
 ymax=max(y_pred,ymax)
 ymin=min(y_pred,ymin)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_GN_GMM-1.png)<!-- -->
-
-``` r
 ## Indicators
 mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
 ```
@@ -4693,38 +3504,14 @@ mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
 mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
-
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_GN_GMM-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_GN_GMM-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_GN_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_GN_GMM-1.png)<!-- -->
 
 #### ROSE-WR sample
 
@@ -4740,13 +3527,7 @@ lwr <- p$lwr
 y_pred = p$fit
 ymax=max(y_pred,ymax)
 ymin=min(y_pred,ymin)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_ROSE_SC-1.png)<!-- -->
-
-``` r
 ## Indicators
 mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
 ```
@@ -4774,38 +3555,14 @@ mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
 mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
-
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_ROSE_SC-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_ROSE_SC-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_ROSE_SC-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_ROSE_SC-1.png)<!-- -->
 
 #### ROSE_GMM-WR sample
 
@@ -4821,13 +3578,7 @@ lwr <- p$lwr
 y_pred = p$fit
 ymax=max(y_pred,ymax)
 ymin=min(y_pred,ymin)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ROSE_GMM-1.png)<!-- -->
-
-``` r
 ## Indicators
 mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
 ```
@@ -4855,38 +3606,14 @@ mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
 mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
-
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ROSE_GMM-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ROSE_GMM-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ROSE_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_ROSE_GMM-1.png)<!-- -->
 
 #### KDE-WR sample
 
@@ -4902,13 +3629,7 @@ lwr <- p$lwr
 y_pred = p$fit
 ymax=max(y_pred,ymax)
 ymin=min(y_pred,ymin)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_kde_boot-1.png)<!-- -->
-
-``` r
 ## Indicators
 mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
 ```
@@ -4936,38 +3657,14 @@ mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
 mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
-
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_kde_boot-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_kde_boot-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_kde_boot-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_kde_boot-1.png)<!-- -->
 
 #### KDE_GMM-WR sample
 
@@ -4983,13 +3680,7 @@ lwr <- p$lwr
 y_pred = p$fit
 ymax=max(y_pred,ymax)
 ymin=min(y_pred,ymin)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_kde_boot_GMM-1.png)<!-- -->
-
-``` r
 ## Indicators
 mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
 ```
@@ -5017,38 +3708,14 @@ mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
 mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
-
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_kde_boot_GMM-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_kde_boot_GMM-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_kde_boot_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_kde_boot_GMM-1.png)<!-- -->
 
 #### GMM-WR sample
 
@@ -5064,13 +3731,7 @@ lwr <- p$lwr
 y_pred = p$fit
 ymax=max(y_pred,ymax)
 ymin=min(y_pred,ymin)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_GMM-1.png)<!-- -->
-
-``` r
 ## Indicators
 mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
 ```
@@ -5098,38 +3759,14 @@ mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
 mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
-
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_GMM-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_GMM-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_GMM-1.png)<!-- -->
 
 #### FA_GMM-WR sample
 
@@ -5145,13 +3782,7 @@ lwr <- p$lwr
 y_pred = p$fit
 ymax=max(y_pred,ymax)
 ymin=min(y_pred,ymin)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_FA_GMM-1.png)<!-- -->
-
-``` r
 ## Indicators
 mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
 ```
@@ -5179,38 +3810,14 @@ mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
 mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
-
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_FA_GMM-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_FA_GMM-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_FA_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_FA_GMM-1.png)<!-- -->
 
 #### Copula-WR sample
 
@@ -5226,13 +3833,7 @@ lwr <- p$lwr
 y_pred = p$fit
 ymax=max(y_pred,ymax)
 ymin=min(y_pred,ymin)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_copule-1.png)<!-- -->
-
-``` r
 ## Indicators
 mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
 ```
@@ -5260,38 +3861,14 @@ mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
 mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
-
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_copule-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_copule-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_copule-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_copule-1.png)<!-- -->
 
 #### GAN-WR sample
 
@@ -5307,13 +3884,7 @@ lwr <- p$lwr
 y_pred = p$fit
 ymax=max(y_pred,ymax)
 ymin=min(y_pred,ymin)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_GAN-1.png)<!-- -->
-
-``` r
 ## Indicators
 mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
 ```
@@ -5342,36 +3913,13 @@ mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_GAN-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_GAN-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_GAN-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_GAN-1.png)<!-- -->
 
 #### GAN_GMM-WR sample
 
@@ -5387,13 +3935,7 @@ lwr <- p$lwr
 y_pred = p$fit
 ymax=max(y_pred,ymax)
 ymin=min(y_pred,ymin)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_ctganSynth_GMM-1.png)<!-- -->
-
-``` r
 ## Indicators
 mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
 ```
@@ -5422,36 +3964,13 @@ mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_ctganSynth_GMM-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_ctganSynth_GMM-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_ctganSynth_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_ctganSynth_GMM-1.png)<!-- -->
 
 #### SMOTE-WR sample
 
@@ -5467,13 +3986,7 @@ lwr <- p$lwr
 y_pred = p$fit
 ymax=max(y_pred,ymax)
 ymin=min(y_pred,ymin)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_smote-1.png)<!-- -->
-
-``` r
 ## Indicators
 mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
 ```
@@ -5501,38 +4014,14 @@ mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
 mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
-
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_smote-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_smote-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_smote-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_smote-1.png)<!-- -->
 
 #### SMOTE_GMM-WR sample
 
@@ -5548,13 +4037,7 @@ lwr <- p$lwr
 y_pred = p$fit
 ymax=max(y_pred,ymax)
 ymin=min(y_pred,ymin)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_smote_GMM-1.png)<!-- -->
-
-``` r
 ## Indicators
 mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
 ```
@@ -5582,38 +4065,14 @@ mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
 mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
-
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_smote_GMM-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_smote_GMM-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_smote_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_smote_GMM-1.png)<!-- -->
 
 #### RF-WR sample
 
@@ -5629,13 +4088,7 @@ lwr <- p$lwr
 y_pred = p$fit
 ymax=max(y_pred,ymax)
 ymin=min(y_pred,ymin)
-plot(y_test,y_pred)
-abline(0,1,col='red')
-```
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_RF2-1.png)<!-- -->
-
-``` r
 ## Indicators
 mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
 ```
@@ -5663,38 +4116,14 @@ mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
 mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
 k = k + 1
 
-
 ## Graphics
-plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
-points(test$X, y_test, col='red')
-```
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_RF2-2.png)<!-- -->
-
-``` r
-ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
-  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
-  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
-  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
-  
-  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
-```
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_RF2-3.png)<!-- -->
-
-``` r
-## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
-
 graph_Y(name_dat)
 ```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_RF2-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_RF2-1.png)<!-- -->
 
 ``` r
 beepr::beep(8)
@@ -5703,27 +4132,26 @@ beepr::beep(8)
 *Calcul distance X*
 
 ``` r
-# KSD_X = data.frame("ech" = rep(" ",16), "KSD" = rep(0,16))
-# KSD_X$ech = c("Di (imb)","WR","GN","GN-GMM","ROSE","ROSE-GMM","KDE","KDE-GMM",                  "GMM","FA_GMM","Copule","GAN","GAN-GMM","SMOTE","SMOTE-GMM","RF") 
-# 
-# 
-# KSD_X$KSD[1] = ks.test(ech0$X,ech_rep$X)$statistic
-# KSD_X$KSD[2] = ks.test(ech_add$X,ech_rep$X)$statistic
-# KSD_X$KSD[3] = ks.test(ech_GN_SC$X,ech_rep$X)$statistic
-# KSD_X$KSD[4] = ks.test(GN_GMM$X,ech_rep$X)$statistic
-# KSD_X$KSD[5] = ks.test(ech_ROSE_SC$X,ech_rep$X)$statistic
-# KSD_X$KSD[6] = ks.test(ROSE_GMM$X,ech_rep$X)$statistic
-# KSD_X$KSD[7] = ks.test(kde_boot$X,ech_rep$X)$statistic
-# KSD_X$KSD[8] = ks.test(kde_boot_GMM$X,ech_rep$X)$statistic
-# KSD_X$KSD[9] = ks.test(GMM$X,ech_rep$X)$statistic
-# KSD_X$KSD[10] = ks.test(FA_GMM$X,ech_rep$X)$statistic
-# KSD_X$KSD[11] = ks.test(ech_copule$X,ech_rep$X)$statistic
-# KSD_X$KSD[12] = ks.test(ech_GAN$X,ech_rep$X)$statistic
-# KSD_X$KSD[13] = ks.test(ech_ctganSynth_GMM$X,ech_rep$X)$statistic
-# KSD_X$KSD[14] = ks.test(ech_smote$X,ech_rep$X)$statistic
-# KSD_X$KSD[15] = ks.test(ech_smote_GMM$X,ech_rep$X)$statistic
-# KSD_X$KSD[16] = ks.test(ech_RF2$X,ech_rep$X)$statistic
-# #barplot(KSD_X$KSD, legend.text = KSD_X$ech,col = brewer.pal(n=nrow(KSD_X),"RdBu"))
+KSD_X = data.frame("ech" = rep(" ",16), "KSD" = rep(0,16))
+KSD_X$ech = c("Di (imb)","WR","GN","GN-GMM","ROSE","ROSE-GMM","KDE","KDE-GMM",                  "GMM","FA_GMM","Copule","GAN","GAN-GMM","SMOTE","SMOTE-GMM","RF")
+
+
+KSD_X$KSD[1] = ks.test(ech0$X,ech_rep$X)$statistic
+KSD_X$KSD[2] = ks.test(ech_add$X,ech_rep$X)$statistic
+KSD_X$KSD[3] = ks.test(ech_GN_SC$X,ech_rep$X)$statistic
+KSD_X$KSD[4] = ks.test(GN_GMM$X,ech_rep$X)$statistic
+KSD_X$KSD[5] = ks.test(ech_ROSE_SC$X,ech_rep$X)$statistic
+KSD_X$KSD[6] = ks.test(ROSE_GMM$X,ech_rep$X)$statistic
+KSD_X$KSD[7] = ks.test(kde_boot$X,ech_rep$X)$statistic
+KSD_X$KSD[8] = ks.test(kde_boot_GMM$X,ech_rep$X)$statistic
+KSD_X$KSD[9] = ks.test(GMM$X,ech_rep$X)$statistic
+KSD_X$KSD[10] = ks.test(FA_GMM$X,ech_rep$X)$statistic
+KSD_X$KSD[11] = ks.test(ech_copule$X,ech_rep$X)$statistic
+KSD_X$KSD[12] = ks.test(ech_GAN$X,ech_rep$X)$statistic
+KSD_X$KSD[13] = ks.test(ech_ctganSynth_GMM$X,ech_rep$X)$statistic
+KSD_X$KSD[14] = ks.test(ech_smote$X,ech_rep$X)$statistic
+KSD_X$KSD[15] = ks.test(ech_smote_GMM$X,ech_rep$X)$statistic
+KSD_X$KSD[16] = ks.test(ech_RF2$X,ech_rep$X)$statistic
 # 
 # label_x =  factor(KSD_X$ech, levels = KSD_X$ech)
 # fig <- plot_ly(KSD_X,x= label_x,y = ~ KSD, color = ~ ech, type = "bar", main = "KS distance X with respect to the balanced sample")  
