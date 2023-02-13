@@ -14,6 +14,10 @@ text-align: justify}
 
 check packages version
 
+``` r
+sessionInfo()
+```
+
     ## R version 4.2.2 (2022-10-31 ucrt)
     ## Platform: x86_64-w64-mingw32/x64 (64-bit)
     ## Running under: Windows 10 x64 (build 22621)
@@ -144,8 +148,28 @@ $X \sim F_0 = \mathcal{B}\text{eta}(5,5)$
 $Y \sim \mathcal{N}(\sin(7X -0.5)+10,0.1)$ where ${\cal B}$ denotes the
 Beta distribution and ${\cal N}$ denotes the Gaussian distribution.
 
+``` r
+if (rerun == T){
+  n_pop = 10000 # size of the population
+  alpha_pop = 5 # parameter of X distribution in the population
+  beta_pop = 5 # parameter of X distribution in the population
+  X_pop = rbeta (n_pop,alpha_pop, beta_pop) # simulation of X in the population
+  hist(X_pop,breaks = 100)
+  pop = data.frame(X=X_pop)
+}
+```
+
 simulation of $Y$ as a function of $X$ according to the non-linear
 relationship :
+
+``` r
+if (rerun == T){
+  for (i in (1:nrow(pop))){
+    pop$Y[i] = rnorm(1,sin(pop$X[i]*7 - 0.5) +10 ,0.1)
+  }
+}
+plot(pop$X,pop$Y)
+```
 
 ![](DAIR_Illustration_files/figure-gfm/genPop_Y-1.png)<!-- -->
 
@@ -157,11 +181,29 @@ The test, balanced, and imbalanced samples are all of size $n=1,000$.
 
 From this population, we uniformly draw a test sample $\mathcal{D}^t$.
 
+``` r
+if (rerun == T){
+  base=pop
+  n_ech = 1000
+  ind_test = sample(nrow(base),n_ech)
+  test = base[ind_test,]
+  base = base[-ind_test,]
+  y_test = test$Y
+  test$Y = NULL
+}
+```
+
 ### Balanced sample
 
 From the remaining population, $\mathcal{D}^p$ \\ $\mathcal{D}^t$, we
 uniformly draw a balanced sample $\mathcal{D}^b$, supposed to be
 representative of the population.
+
+``` r
+if (rerun == T){
+  ech_rep = base[sample(nrow(base),n_ech),]
+}
+```
 
 ### Imbalanced sample
 
@@ -170,18 +212,108 @@ remaining population. The draw weights to construct this imbalanced
 sample are defined by the distribution $F = \mathcal{B}\text{eta}(9,9)$
 in order to get less observations on the sides.
 
+``` r
+plot(dbeta(x=seq(0,1,0.01), 9,9 ), col="darkred", type = 'l')
+lines(dbeta(x=seq(0,1,0.01),alpha_pop ,beta_pop ), col="green3")
+```
+
 ![](DAIR_Illustration_files/figure-gfm/genDist_Imbalanced-1.png)<!-- -->
+
+``` r
+if (rerun == T){
+  ech = base[sample(nrow(base),n_ech,prob = dbeta(base$X,9,9)),]
+  X_ech = ech$X
+  ech0 = ech
+}
+```
 
 Graphical analysis of the imbalanced sample
 
-![](DAIR_Illustration_files/figure-gfm/Graph_Imbalanced-1.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/Graph_Imbalanced-2.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/Graph_Imbalanced-3.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/Graph_Imbalanced-4.png)<!-- -->
+``` r
+df_train=data.frame(ech$X,rep("imb",length(ech$X)))
+df_test=data.frame(pop$X,rep("pop",length(test$X)))
+colnames(df_train)=c("X","dataset")
+colnames(df_test)=c("X","dataset")
+df = rbind(df_train,df_test)
+
+ggplot(df, aes(X, color=dataset, fill=dataset)) + 
+  geom_histogram(alpha = 0.5,aes(y = ..density..),bins=100,position="identity")+
+  geom_density(alpha=0.5)+
+  scale_color_manual(values = c("pop" = "azure4", "imb" = "darkred"),labels = c(unname(TeX(c(r"($\textit{D}^i$)"))), unname(TeX(c(r"($\textit{D}^p$)"))))) + 
+  scale_fill_manual(values = c("pop" = "azure4", "imb" = "darkred"),labels = c(unname(TeX(c(r"($\textit{D}^i$)"))), unname(TeX(c(r"($\textit{D}^p$)"))))) +
+  theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
+
+![](DAIR_Illustration_files/figure-gfm/Graph_Imbalanced-1.png)<!-- -->
+
+``` r
+ggsave("Sorties_illustration/comp_X_Ech0-vs-Pop-Dens.png",width=7.29, height=4.5)
+
+ggplot(df, aes(X, color=dataset, fill=dataset)) + 
+  geom_histogram(alpha = 0.5,aes(y = ..density..),bins=100,position="identity")+
+  scale_color_manual(values = c("pop" = "azure4", "imb" = "darkred"),labels = c(unname(TeX(c(r"($\textit{D}^i$)"))), unname(TeX(c(r"($\textit{D}^p$)"))))) + 
+  scale_fill_manual(values = c("pop" = "azure4", "imb" = "darkred"),labels = c(unname(TeX(c(r"($\textit{D}^i$)"))), unname(TeX(c(r"($\textit{D}^p$)"))))) +
+  theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
+
+![](DAIR_Illustration_files/figure-gfm/Graph_Imbalanced-2.png)<!-- -->
+
+``` r
+ggsave("Sorties_illustration/comp_X_Ech0-vs-Pop.png",width=7.29, height=4.5)
+
+ggplot() + 
+  geom_point(aes(x=pop$X, y=pop$Y, colour="pop")) + 
+  geom_point(aes(x=ech0$X, y=ech0$Y, colour="imb"))+
+  scale_color_manual(name = "dataset",values = c("pop" = "azure4", "imb" = "darkred"),labels = c(unname(TeX(c(r"($\textit{D}^i$)"))), unname(TeX(c(r"($\textit{D}^p$)"))))) + 
+  theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) +
+  xlab("X") + ylab("Y")
+```
+
+![](DAIR_Illustration_files/figure-gfm/Graph_Imbalanced-3.png)<!-- -->
+
+``` r
+ggsave("Sorties_illustration/comp_Y_Ech0-vs-Pop.png",width=7.29, height=4.5)
+
+
+df_train=data.frame(ech$X,rep("imb",length(ech$X)))
+df_test=data.frame(test$X,rep("test",length(test$X)))
+colnames(df_train)=c("X","dataset")
+colnames(df_test)=c("X","dataset")
+df = rbind(df_train,df_test)
+
+ggplot(df, aes(X, color=dataset, fill=dataset)) + 
+  geom_histogram(alpha = 0.5,aes(y = ..density..),bins=100,position="identity")+
+  scale_color_manual(values = c("darkred","darkgreen"),labels = c(unname(TeX(c(r"($\textit{D}^i$)"))), unname(TeX(c(r"($\textit{D}^p$)"))))) + 
+  scale_fill_manual(values = c("darkred","darkgreen"),labels = c(unname(TeX(c(r"($\textit{D}^i$)"))), unname(TeX(c(r"($\textit{D}^p$)"))))) +
+  theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
+
+![](DAIR_Illustration_files/figure-gfm/Graph_Imbalanced-4.png)<!-- -->
 
 Imbalanced analysis for the definition of Imbalanced Covariates
 Regression in the paper.
 
+``` r
+# threshold 
+a = 0.3
+b = 0.7
+
+# alpha 
+(1-pbeta(b,5,5))/(1-pbeta(b,9,9)) - 1
+```
+
     ## [1] 1.453232
 
+``` r
+# beta
+pbeta(a,5,5)
+```
+
     ## [1] 0.09880866
+
+``` r
+1-pbeta(b,5,5)
+```
 
     ## [1] 0.09880866
 
@@ -207,19 +339,78 @@ associated probability $\mathbb{P}_0$.
 We wish to redress the initial distribution of $X$ (in black) as follows
 (in red):
 
+``` r
+ggplot(ech, aes(X)) + 
+  geom_histogram(alpha = 0.5, aes(y = ..density..,color= "imb"),position = 'identity',bins=100, fill="darkred")+
+  geom_density(alpha=0.5, fill = "darkred")+
+  geom_line(aes(y=dbeta(ech$X,alpha_pop,beta_pop),colour="f0"), lwd=2,linetype = 1)+
+  scale_color_manual(name = "legend",values = c("f0" = "darkgreen", "imb" = "darkred"),labels = c(unname(TeX(c(r"($\textit{f}_0$)"))), unname(TeX(c(r"($\textit{D}^i$)"))))) +
+  theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
+
 ![](DAIR_Illustration_files/figure-gfm/histInit_cible-1.png)<!-- -->
+
+``` r
+ggsave("Sorties_illustration/Hist_X_Ech0-vs-Tgt.png",width=7.29, height=4.5)
+```
 
 ## Weighted Resampling (WR) algorithm
 
 Resampling weights definition
 
+``` r
+# Target dstribution : population
+Pt = function(x){
+  dbeta(x,alpha_pop,beta_pop)
+}
+
+X = ech$X
+pe = density(X,n=length(X)) # emmpiric distribution  : kernel estimator
+ech$pe = approx(pe$x,pe$y,xout=ech$X)$y
+ech$pt = Pt(X)
+ech$w = ech$pt / ech$pe
+ech$q = ech$w / sum(ech$w)
+
+ggplot(ech, aes(x=X)) + geom_point(aes(y=q), colour="darkred") + labs(y = "weight")
+```
+
 ![](DAIR_Illustration_files/figure-gfm/WB-1.png)<!-- -->
+
+``` r
+ggsave("Sorties_illustration/weights-ech0.png",width=7.29, height=4.5)
+```
 
 Drawing
 
+``` r
+if (rerun == T){
+  # Drawing
+  ech_add = sample(seq(1, nrow(ech)),n_ech,replace=T,prob = ech$q)
+  ech_add = ech[ech_add,]
+  
+  # Variable selection
+  filtre_var = c("X","Y")
+  ech_add = ech_add[,filtre_var]
+  ech0 = ech0[,filtre_var]
+}
+```
+
 Obtained distribution after resampling
 
+``` r
+ggplot(ech_add, aes(X)) + 
+  geom_histogram(alpha = 0.5, aes(y = ..density..,color= "WR"),position = 'identity',bins=100, fill="darkred")+
+  geom_density(alpha=0.5, fill = "darkred")+
+  geom_line(aes(y=dbeta(ech_add$X,alpha_pop,beta_pop),colour="f0"), lwd=2,linetype = 1)+
+  scale_color_manual(name = "legend",values = c("f0" = "darkgreen", "WR" = "darkred"),labels = c(unname(TeX(c(r"($\textit{f}_0$)"))), unname(TeX(c(r"($\textit{D}^*(WR)$)"))))) +
+  theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
+
 ![](DAIR_Illustration_files/figure-gfm/histWB_cible-1.png)<!-- -->
+
+``` r
+ggsave("Sorties_illustration/Hist_X_Ech_add-vs-Tgt.png",width=7.29, height=4.5)
+```
 
 This last figure shows the new sample $\mathcal{D}^*$ which is closer to
 target distribution than the initial one. However, the values on the
@@ -231,6 +422,20 @@ over-fitting effect. To improve the weighted resampling, we propose to
 combine it with a synthetic data generation.
 
 Definition of a WR function to reuse it
+
+``` r
+WR = function(ech,X,N){
+  # Drawing weights
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=ech$X)$y
+  pt = Pt(X)
+  w = pt / pe
+  q = w / sum(w)
+  # Drawing
+  ind = sample(seq(1, nrow(ech)),N,replace=T,prob = q)
+  ech[ind,]
+}
+```
 
 ## Data Augmentation - Weighted Resampling algorithm
 
@@ -382,13 +587,36 @@ case and no orientation in the second.
 
 ### Random Forest (RF)
 
+``` r
+if (rerun == T){
+  ech_RF=syn(ech0,method="rf", visit.sequence = c("X","Y"),k=1000, proper=T)
+  ech_RF = ech_RF$syn
+}
+summary(ech_RF$X)
+```
+
     ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
     ##  0.2431  0.4388  0.5039  0.5034  0.5681  0.7909
+
+``` r
+summary(ech0$X)
+```
 
     ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
     ##  0.2431  0.4363  0.5028  0.5023  0.5678  0.7909
 
-![](DAIR_Illustration_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/unnamed-chunk-2-2.png)<!-- -->
+``` r
+qqplot(ech_RF$X,ech0$X)
+```
+
+![](DAIR_Illustration_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
+
+``` r
+hist(ech_RF$X, col=rgb(0,0,1,1/4),breaks = 100,prob=T) 
+hist(ech0$X, col=rgb(1,0,0,1/4),breaks = 100,prob=T, add=T) 
+```
+
+![](DAIR_Illustration_files/figure-gfm/unnamed-chunk-2-2.png)<!-- -->
 
 ![](DAIR_Illustration_files/figure-gfm/Synthpop-RF-1.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/Synthpop-RF-2.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/Synthpop-RF-3.png)<!-- -->
 
@@ -1636,3 +1864,31 @@ Graphical analysis of the rebalanced sample
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_RF2-4.png)<!-- -->
 
 *Calcul distance X*
+
+``` r
+# KSD_X = data.frame("ech" = rep(" ",16), "KSD" = rep(0,16))
+# KSD_X$ech = c("Di (imb)","WR","GN","GN-GMM","ROSE","ROSE-GMM","KDE","KDE-GMM",                  "GMM","FA_GMM","Copule","GAN","GAN-GMM","SMOTE","SMOTE-GMM","RF") 
+# 
+# 
+# KSD_X$KSD[1] = ks.test(ech0$X,ech_rep$X)$statistic
+# KSD_X$KSD[2] = ks.test(ech_add$X,ech_rep$X)$statistic
+# KSD_X$KSD[3] = ks.test(ech_GN_SC$X,ech_rep$X)$statistic
+# KSD_X$KSD[4] = ks.test(GN_GMM$X,ech_rep$X)$statistic
+# KSD_X$KSD[5] = ks.test(ech_ROSE_SC$X,ech_rep$X)$statistic
+# KSD_X$KSD[6] = ks.test(ROSE_GMM$X,ech_rep$X)$statistic
+# KSD_X$KSD[7] = ks.test(kde_boot$X,ech_rep$X)$statistic
+# KSD_X$KSD[8] = ks.test(kde_boot_GMM$X,ech_rep$X)$statistic
+# KSD_X$KSD[9] = ks.test(GMM$X,ech_rep$X)$statistic
+# KSD_X$KSD[10] = ks.test(FA_GMM$X,ech_rep$X)$statistic
+# KSD_X$KSD[11] = ks.test(ech_copule$X,ech_rep$X)$statistic
+# KSD_X$KSD[12] = ks.test(ech_GAN$X,ech_rep$X)$statistic
+# KSD_X$KSD[13] = ks.test(ech_ctganSynth_GMM$X,ech_rep$X)$statistic
+# KSD_X$KSD[14] = ks.test(ech_smote$X,ech_rep$X)$statistic
+# KSD_X$KSD[15] = ks.test(ech_smote_GMM$X,ech_rep$X)$statistic
+# KSD_X$KSD[16] = ks.test(ech_RF2$X,ech_rep$X)$statistic
+# #barplot(KSD_X$KSD, legend.text = KSD_X$ech,col = brewer.pal(n=nrow(KSD_X),"RdBu"))
+# 
+# label_x =  factor(KSD_X$ech, levels = KSD_X$ech)
+# fig <- plot_ly(KSD_X,x= label_x,y = ~ KSD, color = ~ ech, type = "bar", main = "KS distance X with respect to the balanced sample")  
+# fig 
+```
