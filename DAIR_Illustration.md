@@ -446,25 +446,157 @@ WR = function(ech,X,N){
 **Gaussian Noise on the augmented dataset and application of WR
 algorithm**
 
+``` r
+if (rerun == T){
+  ### Approach GN (cf fonction Gn.exsClassif : https://rdrr.io/github/paobranco/UBL/src/R/gaussNoiseClassif.R
+  N = 100000
+  pert = 0.3 
+  
+  for (tir in seq(round(N/nrow(ech_add)))){
+    ech_GN=ech_add
+    for (j in (1:ncol(ech_add))) {
+      ech_GN[, j] = ech_add[, j] + rnorm(nrow(ech_add), 0, sd(ech0[,colnames(ech0)[j]]) * pert)
+    }
+    if (tir==1){
+      ech_GN_SC = ech_GN
+    }else{
+      ech_GN_SC = rbind(ech_GN_SC,ech_GN)
+    }
+  }
+  
+  # WR algorithm
+  ech_GN_SC = WR(ech_GN_SC,ech_GN_SC$X,n_ech)
+}
+```
+
 Graphical analysis of the rebalanced sample
+
+``` r
+ech_synth = ech_GN_SC
+name_synth = "ech_GN_SC"
+
+graph = function (ech_synth,name_synth){
+  # Covariate analysis
+  print(ggplot(ech_synth, aes(X)) + 
+    geom_histogram(alpha = 0.5, aes(y = ..density..,color= "new"),position = 'identity',bins=100, fill="deepskyblue4")+
+    geom_density(alpha=0.5, fill = "deepskyblue4")+
+    geom_line(aes(y=dbeta(ech_synth$X,alpha_pop,beta_pop),colour="f0"), lwd=2,linetype = 1)+
+    scale_color_manual(name = "legend",values = c("f0" = "darkgreen", "new" = "deepskyblue4"),labels = c(unname(TeX(c(r"($\textit{f}_0$)"))), unname(TeX(c(r"($\textit{D}^*$)"))))) +
+    theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)))
+  ggsave(paste0("Sorties_illustration/Hist_X_",name_synth,"-vs-Tgt.png"),width=7.29, height=4.5)
+  
+  df_add=data.frame(ech_add$X,rep("WR",length(ech$X)))
+  df_synth=data.frame(ech_synth$X,rep("new",length(ech_synth$X)))
+  colnames(df_add)=c("X","dataset")
+  colnames(df_synth)=c("X","dataset")
+  df = rbind(df_add,df_synth)
+  print(ggplot(df, aes(X, color=dataset, fill=dataset)) + 
+    geom_histogram(alpha = 0.5, aes(y = ..density..),position = 'identity',bins=100)+
+      #geom_density(alpha=0.5)+
+    scale_color_manual(values=c("WR" = "darkred", "new" = "deepskyblue4"),labels = c(unname(TeX(c(r"($\textit{D}^*(DA-WR)$)"))), unname(TeX(c(r"($\textit{D}^*(WR)$)")))))+
+    scale_fill_manual(values=c("WR" = "darkred", "new" = "deepskyblue4"),labels = c(unname(TeX(c(r"($\textit{D}^*(DA-WR)$)"))), unname(TeX(c(r"($\textit{D}^*(WR)$)")))))+
+    theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)))
+  ggsave(paste0("Sorties_illustration/Hist_X_",name_synth,"-vs-ech_add.png"),width=7.29, height=4.5)
+  
+  # Target variable analysis
+  print(ggplot() + 
+    geom_point(aes(x=ech_synth$X, y=ech_synth$Y, colour="new")) + 
+    geom_point(aes(x=ech0$X, y=ech0$Y, colour="imb"))+
+    scale_color_manual(name = "dataset",values = c("new" = "deepskyblue4", "imb" = "darkred"),labels = c(unname(TeX(c(r"($\textit{D}^i$)"))), unname(TeX(c(r"($\textit{D}^*$)"))))) + 
+    theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))+
+  xlab("X") + ylab("Y"))
+  ggsave(paste0("Sorties_illustration/comp_Y_",name_synth,"-vs-ech0.png"),width=7.29, height=4.5)
+
+}
+graph(ech_synth,name_synth)
+```
 
 ![](DAIR_Illustration_files/figure-gfm/GN2-1.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/GN2-2.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/GN2-3.png)<!-- -->
 
 **Gaussian Noise on the augmented dataset, by cluster and application of
 WR algorithm**
 
+``` r
+if (rerun == T){
+  N = 100000
+  DMC = densityMclust(ech0, plot=F,G=1:6)
+  ech_MC = cbind(ech0,"cluster" = DMC$classification)
+  cl = max(ech_MC$cluster)
+  for (tir in seq(round(N/nrow(ech_add)))){
+    for (i in (1:cl)){
+        temp = ech_MC[ech_MC$cluster == i,]
+        ech_add_temp = merge(temp, ech_add, on ="X")
+        N = nrow(ech_add_temp)
+        ech_GN=ech_add_temp
+        for (j in (1:ncol(ech_add_temp))) {
+          ech_GN[, j] = ech_add_temp[, j] +
+            rnorm(nrow(ech_add_temp), 0, sd(temp[,colnames(temp)[j]]) * pert)
+        }
+        if (tir==1 & i==1){
+          GN_GMM = ech_GN
+        }else{
+          GN_GMM = rbind(GN_GMM,ech_GN)
+        }
+    }
+  }
+  
+  # WR algorithm
+  GN_GMM = WR(GN_GMM,GN_GMM$X,n_ech)
+}
+```
+
 Graphical analysis of clustering
+
+``` r
+# Clustering analysis
+ggplot(ech_MC, aes(x=X, y=Y, color=cluster)) + geom_point() + 
+    theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=12,hjust=0))
+```
 
 ![](DAIR_Illustration_files/figure-gfm/cluster-1.png)<!-- -->
 
+``` r
+ggsave(paste0("Sorties_illustration/clustering.png"),width=7.29, height=4.5)
+```
+
 Graphical analysis of the rebalanced sample
+
+``` r
+ech_synth = GN_GMM
+name_synth = "GN_GMM"
+graph(ech_synth,name_synth)
+```
 
 ![](DAIR_Illustration_files/figure-gfm/GN-GMM2-1.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/GN-GMM2-2.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/GN-GMM2-3.png)<!-- -->
 
 **Application of the Gaussian Noise for regression imbalanced, on the
 augmented dataset and application of WR algorithm**
 
-![](DAIR_Illustration_files/figure-gfm/GN-classif-1.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/GN-classif-2.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/GN-classif-3.png)<!-- -->
+``` r
+if (rerun == T){
+  ech_GN_clust = GaussNoiseClassif(cluster ~ .,ech_MC, pert,C.perc = "balance")
+}
+hist(ech_GN_clust$X,breaks=100, col = "antiquewhite",freq=F,right = T)
+points(ech_GN_clust$X,dbeta(ech_GN_clust$X,alpha_pop,beta_pop),col="red")
+lines(density(ech_GN_clust$X),col="black",lwd=2)
+```
+
+![](DAIR_Illustration_files/figure-gfm/GN-classif-1.png)<!-- -->
+
+``` r
+hist(ech_GN_clust$X, col=rgb(0,0,1,1/4),breaks = 100,prob=T) 
+hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 100,prob=T, add=T) 
+hist(ech0$X,col=rgb(1,0,0,1/4),breaks = 100,prob=T, add=T)
+```
+
+![](DAIR_Illustration_files/figure-gfm/GN-classif-2.png)<!-- -->
+
+``` r
+plot(ech_GN_clust$X,ech_GN_clust$Y)
+points(ech0$X,ech0$Y,col="red")
+```
+
+![](DAIR_Illustration_files/figure-gfm/GN-classif-3.png)<!-- -->
 
 Not relevant
 
@@ -473,26 +605,146 @@ Not relevant
 *Estimator inspired by ROSE* source code :
 <https://rdrr.io/cran/ROSE/man/ROSE-package.html>
 
+``` r
+if (rerun == T){
+  hmult=1
+  n = nrow(ech0)
+  q = ncol(ech0)
+  n.new <- nrow(ech_add)
+  cons.kernel <- (4/((q+2)*n))^(1/(q+4))
+  if(q!=1){
+    H <- hmult*cons.kernel*diag(apply(ech0, 2, sd), q)
+  }else {
+    H <- hmult*cons.kernel*sd(ech0)}
+  Xnew.num <- matrix(rnorm(n.new*q), n.new, q)%*%H
+  ech_ROSE_SC =data.frame(Xnew.num + ech_add)
+  
+  # WR algorithm
+  ech_ROSE_SC = WR(ech_ROSE_SC,ech_ROSE_SC$X,n_ech)
+}
+```
+
 Graphical analysis of the rebalanced sample
+
+``` r
+ech_synth = ech_ROSE_SC
+name_synth = "ech_ROSE_SC"
+graph(ech_synth,name_synth)
+```
 
 ![](DAIR_Illustration_files/figure-gfm/ROSE_AnalyseY-1.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/ROSE_AnalyseY-2.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/ROSE_AnalyseY-3.png)<!-- -->
 
 *application by cluster*
 
+``` r
+if (rerun == T){
+  ech_MC = cbind(ech0[,c("X","Y")],"cluster" = DMC$classification)
+  ech_add_MC = merge(ech_MC, ech_add, on = filtre_var)
+  cl = max(ech_MC$cluster)
+  N = 100000
+  
+  for (tir in seq(round(N/nrow(ech_add)))){
+    for (i in (1:cl)){
+        temp = ech_MC[ech_MC$cluster == i,]
+        temp_add = ech_add_MC[ech_add_MC$cluster == i,]
+        n = nrow(temp)
+        q = ncol(temp)
+        n.new <- nrow(temp_add)
+        cons.kernel <- (4/((q+2)*n))^(1/(q+4))
+        if(q!=1){
+          H <- hmult*cons.kernel*diag(apply(temp, 2, sd), q)
+        }else {
+          H <- hmult*cons.kernel*sd(temp)}
+        Xnew.num <- matrix(rnorm(n.new*q), n.new, q)%*%H
+        ech_ROSE =data.frame(Xnew.num + temp_add)
+        if (tir == 1 & i == 1) {
+        ROSE_GMM = ech_ROSE
+      } else {ROSE_GMM = rbind(ROSE_GMM, ech_ROSE)}
+    }
+  }
+  
+  # WR algorithm
+  ROSE_GMM = WR(ROSE_GMM,ROSE_GMM$X,n_ech)
+}
+```
+
 Graphical analysis of the rebalanced sample
+
+``` r
+ech_synth = ROSE_GMM
+name_synth = "ROSE_GMM"
+graph(ech_synth,name_synth)
+```
 
 ![](DAIR_Illustration_files/figure-gfm/ROSE_GMM_res-1.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/ROSE_GMM_res-2.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/ROSE_GMM_res-3.png)<!-- -->
 
 *Smoothed Bootstrap (KDE)* Same approach than ROSE but with another
 bandwidth matrix
 
+``` r
+if (rerun == T){
+  # Drawing weights
+  X = ech0$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=ech0$X)$y
+  pt = Pt(X)
+  w = pt / pe
+  q = w / sum(w)
+  
+  kde_boot = data.frame(rmvg(100000, ech0, weights =  q))
+  
+  # WR algorithm
+  kde_boot = WR(kde_boot,kde_boot$X,n_ech)
+}
+```
+
 Graphical analysis of the rebalanced sample
+
+``` r
+ech_synth = kde_boot
+name_synth = "kde_boot"
+graph(ech_synth,name_synth)
+```
 
 ![](DAIR_Illustration_files/figure-gfm/smoothedbootstrap%20result-1.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/smoothedbootstrap%20result-2.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/smoothedbootstrap%20result-3.png)<!-- -->
 
 *application by cluster*
 
+``` r
+if (rerun == T){
+  # Drawing weights
+  X = ech0$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=ech0$X)$y
+  pt = Pt(X)
+  w = pt / pe
+  q = w / sum(w)
+  
+  N = 100000
+  ech_MC = cbind(ech0[,c("X","Y")],"cluster" = DMC$classification)
+  ech_add_MC = merge(ech_MC, ech_add, on = filtre_var)
+  cl = max(ech_MC$cluster)
+  for (tir in seq(round(N/nrow(ech_add)))){
+    for (i in (1:cl)){
+      temp = data.frame(rmvg(sum(ech_add_MC$cluster == i), ech_MC[ech_MC$cluster == i,filtre_var], weights =  q[ech_MC$cluster==i]))
+      if (tir == 1 & i ==1) {
+      kde_boot_GMM = temp
+    } else {kde_boot_GMM = rbind(kde_boot_GMM, temp)}
+    }
+  }
+  
+  # WR algorithm
+  kde_boot_GMM = WR(kde_boot_GMM,kde_boot_GMM$X,n_ech)
+}
+```
+
 Graphical analysis of the rebalanced sample
+
+``` r
+ech_synth = kde_boot_GMM
+name_synth = "kde_boot_GMM"
+graph(ech_synth,name_synth)
+```
 
 ![](DAIR_Illustration_files/figure-gfm/smoothedbootstrap3-1.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/smoothedbootstrap3-2.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/smoothedbootstrap3-3.png)<!-- -->
 
@@ -500,27 +752,196 @@ Graphical analysis of the rebalanced sample
 
 #### Gaussian Mixture Model (GMM)
 
+``` r
+if (rerun == T){
+  DMC = densityMclust(ech0, plot=F,G=1:6)
+  ech_MC = cbind(ech0,"cluster" = DMC$classification)
+}
+```
+
+``` r
+ggplot(ech_MC, aes(x=X, y=Y, color=cluster)) + geom_point()
+```
+
 ![](DAIR_Illustration_files/figure-gfm/GMM2-1.png)<!-- -->
 
+``` r
+if (rerun == T){
+  DS_GMM = as.data.frame(sim(modelName=DMC$modelName,parameters=DMC$parameters,n=100000))
+  colnames(DS_GMM) = c("cluster",colnames(ech0))
+
+  # WR algorithm
+  GMM = WR(DS_GMM,DS_GMM$X,n_ech)
+}
+```
+
 Graphical analysis of the rebalanced sample
+
+``` r
+### Graphics
+ech_synth = GMM
+name_synth = "GMM"
+graph(ech_synth,name_synth)
+```
 
 ![](DAIR_Illustration_files/figure-gfm/GMM_sim2-1.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/GMM_sim2-2.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/GMM_sim2-3.png)<!-- -->
 
 #### Factor analysis (FA)
 
+``` r
+if (rerun == T){
+  ech = ech0
+  
+  if ("cluster" %in% colnames(ech)) {
+    cl = max(ech$cluster)
+    p = length(colnames(ech))-1
+  }else {
+    cl = 1
+    p = length(colnames(ech))
+  }
+  phi = array(rep(0,cl*p),dim=c(1,p,cl))
+  W = array(rep(0,cl*p*(p-1)),dim=c(p-1,p,cl))
+  mu = array(rep(0,cl*p),dim=c(1,p,cl))
+  for (i in (1:cl)){
+    if ("cluster" %in% colnames(ech)) {
+      temp = ech[ech$cluster == i,]
+    } else {temp = ech}
+    temp = temp[,c("X","Y")]
+    py_run_string("from sklearn.decomposition import FactorAnalysis")
+    ech_py = r_to_py(temp,convert=TRUE)
+    py_run_string("p=r.ech_py.shape[1]")
+    py_run_string("transformer = FactorAnalysis(n_components=p-1, random_state=0)")
+    py_run_string("X_transformed = transformer.fit_transform(r.ech_py)")
+    py_run_string("noise_var = transformer.noise_variance_")
+    py_run_string("mu = transformer.mean_")
+    py_run_string("comp = transformer.components_")
+    phi[,,i] = py$noise_var
+    W[,,i] = py$comp
+    mu[,,i] = py$mu
+  }
+  
+  # Data generation
+  for (i in (1:cl)){
+    if ("cluster" %in% colnames(ech)) {
+      n_ds = sum(ech$cluster == i)*10
+    }else{n_ds = nrow(ech)*10}
+    Z = mvrnorm(n_ds,rep(0,p-1),diag(rep(1,p-1)))
+    temp = Z%*%W[,,i]  +  t(matrix(rep(mu[,,i],n_ds),p,n_ds)) + mvrnorm(n_ds,rep(0,p),diag(phi[,,i]))
+    temp = as.data.frame(cbind(temp,cluster = i))
+    if (i == 1) {
+      DS_FA = temp
+    }else {DS_FA = rbind(DS_FA,temp)}
+  }
+  DS_FA = as.data.frame(DS_FA)
+  colnames(DS_FA) = c(colnames(ech0),"cluster")
+  
+  # WR algorithm
+  DS_FA = WR(DS_FA,DS_FA$X,n_ech)
+}
+```
+
 Graphical analysis of the rebalanced sample
+
+``` r
+plot(DS_FA$X,DS_FA$Y)
+points(ech0$X,ech0$Y,col="red")
+```
 
 ![](DAIR_Illustration_files/figure-gfm/FA_simple_res-1.png)<!-- -->
 
 *application by cluster*
 
+``` r
+if (rerun == T){  
+  DMC = densityMclust(ech0, plot=F,G=1:6)
+  ech_MC = cbind(ech0,"cluster" = DMC$classification)
+  
+  ech = ech_MC
+  
+  if ("cluster" %in% colnames(ech)) {
+    cl = max(ech$cluster)
+    p = length(colnames(ech))-1
+  }else {
+    cl = 1
+    p = length(colnames(ech))
+  }
+  phi = array(rep(0,cl*p),dim=c(1,p,cl))
+  W = array(rep(0,cl*p*(p-1)),dim=c(p-1,p,cl))
+  mu = array(rep(0,cl*p),dim=c(1,p,cl))
+  for (i in (1:cl)){
+    if ("cluster" %in% colnames(ech)) {
+      temp = ech[ech$cluster == i,]
+    } else {temp = ech}
+    temp = temp[,c("X","Y")]
+    p = length(colnames(temp))
+    p_py = r_to_py(p,convert=TRUE)
+    py_run_string("from sklearn.decomposition import FactorAnalysis")
+    ech_py = r_to_py(temp,convert=TRUE)
+    py_run_string("p=r.ech_py.shape[1]")
+    py_run_string("transformer = FactorAnalysis(n_components=p-1, random_state=0)")
+    py_run_string("X_transformed = transformer.fit_transform(r.ech_py)")
+    py_run_string("noise_var = transformer.noise_variance_")
+    py_run_string("mu = transformer.mean_")
+    py_run_string("comp = transformer.components_")
+    phi[,,i] = py$noise_var
+    W[,,i] = py$comp
+    mu[,,i] = py$mu
+  }
+  
+  # Data generation
+  for (i in (1:cl)){
+    n_ds = sum(ech$cluster == i)*100
+    Z = mvrnorm(n_ds,rep(0,p-1),diag(rep(1,p-1)))
+    temp = Z%*%W[,,i]  +  t(matrix(rep(mu[,,i],n_ds),p,n_ds)) + mvrnorm(n_ds,rep(0,p),diag(phi[,,i]))
+    temp = as.data.frame(cbind(temp,cluster = i))
+    if (i == 1) {
+      DS_FA = temp
+    }else {DS_FA = rbind(DS_FA,temp)}
+  }
+  DS_FA_GMM = as.data.frame(DS_FA)
+  colnames(DS_FA_GMM) = c(colnames(ech0),"cluster")
+  
+  # WR algorithm
+  FA_GMM = WR(DS_FA_GMM,DS_FA_GMM$X,n_ech)
+}
+```
+
 Graphical analysis of the rebalanced sample
+
+``` r
+### Graphics
+ech_synth = FA_GMM
+name_synth = "FA_GMM"
+graph(ech_synth,name_synth)
+```
 
 ![](DAIR_Illustration_files/figure-gfm/FA_cluster_res-1.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/FA_cluster_res-2.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/FA_cluster_res-3.png)<!-- -->
 
 ### Copula
 
+``` r
+if (rerun == T){
+  py_run_string("from sdv.tabular import GaussianCopula")
+  ech0_1000 = ech0 
+  ech0_py = r_to_py(ech0_1000,convert=TRUE)
+  py_run_string("copule = GaussianCopula()")
+  py_run_string("copule.fit(r.ech0_py)")
+  py_run_string("ech_copule_py = copule.sample(100000)")
+  ech_copule = py$ech_copule_py
+  
+  # WR algorithm
+  ech_copule = WR(ech_copule,ech_copule$X,n_ech)
+}
+```
+
 Graphical analysis of the rebalanced sample
+
+``` r
+### Graphics
+ech_synth = ech_copule
+name_synth = "ech_copule"
+graph(ech_synth,name_synth)
+```
 
 ![](DAIR_Illustration_files/figure-gfm/copula_res-1.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/copula_res-2.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/copula_res-3.png)<!-- -->
 
@@ -533,13 +954,57 @@ package CTGAN from SDV
 
 *no conditional*
 
+``` r
+if (rerun == T){
+  py_run_string("from sdv.tabular import CTGAN")
+  ech0_py = r_to_py(ech0,convert=TRUE)
+  py_run_string("ctgan = CTGAN(epochs=1000)")
+  py_run_string("ctgan.fit(r.ech0_py)")
+  py_run_string("ech_ctgan_py = ctgan.sample(100000)")
+  ech_GAN = py$ech_ctgan_py
+  
+  # WR algorithm
+  ech_GAN = WR(ech_GAN,ech_GAN$X,n_ech)
+}
+```
+
 Graphical analysis of the rebalanced sample
+
+``` r
+### Graphics
+ech_synth = ech_GAN
+name_synth = "ech_GAN"
+graph(ech_synth,name_synth)
+```
 
 ![](DAIR_Illustration_files/figure-gfm/GAN_res-1.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/GAN_res-2.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/GAN_res-3.png)<!-- -->
 
 *application by cluster*
 
+``` r
+if (rerun == T){
+  ech_MC = cbind(ech0[,c("X","Y")],"cluster" = DMC$classification)
+  py_run_string("from ctgan import CTGANSynthesizer")
+  ech_MC_py = r_to_py(ech_MC,convert=TRUE)
+  py_run_string("discrete_columns = ['cluster']")
+  py_run_string("ctgan = CTGANSynthesizer(epochs=10000)")
+  py_run_string("ctgan.fit(r.ech_MC_py,discrete_columns)")
+  py_run_string("ech_ctgan_py = ctgan.sample(50000)")
+  ech_ctganSynth_GMM = py$ech_ctgan_py
+
+  # WR algorithm
+  ech_ctganSynth_GMM = WR(ech_ctganSynth_GMM,ech_ctganSynth_GMM$X,n_ech)
+}
+```
+
 Graphical analysis of the rebalanced sample
+
+``` r
+### Graphics
+ech_synth = ech_ctganSynth_GMM
+name_synth = "ech_GAN_GMM"
+graph(ech_synth,name_synth)
+```
 
 ![](DAIR_Illustration_files/figure-gfm/GAN_cond_res-1.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/GAN_cond_res-2.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/GAN_cond_res-3.png)<!-- -->
 
@@ -547,19 +1012,125 @@ Graphical analysis of the rebalanced sample
 
 #### interpolation inspired by SMOTE (SMOTE)
 
+``` r
+if (rerun == T){
+  # Drawing weights
+  X = ech0$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=ech0$X)$y
+  pt = Pt(X)
+  w = pt / pe
+  q = w / sum(w)
+  
+  ech = ech0
+  
+  k=3
+  ech$id=seq(nrow(ech))
+  
+  n_pop = 10000 
+  for (i in (1:n_pop)){
+      id = sample(nrow(ech0),1,prob = q)
+      knn_id = smotefamily::knearest(ech,ech[id,], n_clust=k)
+      kppv = knn_id[sample(seq(k),1)]
+      lambda = runif(1)
+      new_obs = ech[id,] + lambda * (ech[kppv,]-ech[id,])
+      rownames(new_obs)=i
+      if (i==1){
+        ech_smote = new_obs
+      }else{
+        ech_smote = rbind(ech_smote,new_obs)
+      }
+  }
+  ech_smote$id = NULL
+  
+  # WR algorithm
+  ech_smote = WR(ech_smote,ech_smote$X,n_ech)
+}
+```
+
 Graphical analysis of the rebalanced sample
+
+``` r
+ech_synth = ech_smote
+name_synth = "ech_smote"
+graph(ech_synth,name_synth)
+```
 
 ![](DAIR_Illustration_files/figure-gfm/Smote_graph-1.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/Smote_graph-2.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/Smote_graph-3.png)<!-- -->
 
 *application by cluster*
 
+``` r
+if (rerun == T){
+  # Drawing weights
+  X = ech0$X
+  pe = density(X,n=length(X))
+  pe = approx(pe$x,pe$y,xout=ech0$X)$y
+  pt = Pt(X)
+  w = pt / pe
+  q = w / sum(w)
+  
+  ech = ech0
+  ech_MC = cbind(ech0,"cluster" = DMC$classification)
+  cl = max(ech_MC$cluster)
+  n_pop = 10000
+  for (i in (1:n_pop)){
+      id = sample(nrow(ech0),1,prob = q)
+      temp = ech_MC[ech_MC$cluster == ech_MC$cluster[id],]
+      knn_id = smotefamily::knearest(temp,ech_MC[id,], n_clust=k)
+      kppv = knn_id[sample(seq(k),1)]
+      lambda = runif(1)
+      new_obs = ech_MC[id,] + lambda * (temp[kppv,]-ech_MC[id,])
+      rownames(new_obs)=i
+      if (i==1){
+        ech_smote_GMM = new_obs
+      }else{
+        ech_smote_GMM = rbind(ech_smote_GMM,new_obs)
+      }
+  }
+  ech_smote_GMM$id = NULL
+  
+  # WR algorithm
+  ech_smote_GMM = WR(ech_smote_GMM,ech_smote_GMM$X,n_ech)
+}
+```
+
 Graphical analysis of the rebalanced sample
+
+``` r
+ech_synth = ech_smote_GMM
+name_synth = "ech_smote_GMM"
+graph(ech_synth,name_synth)
+```
 
 ![](DAIR_Illustration_files/figure-gfm/Smote_clust_graph-1.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/Smote_clust_graph-2.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/Smote_clust_graph-3.png)<!-- -->
 
 *SMOTE on the initial sample, binarised by clusters*
 
-![](DAIR_Illustration_files/figure-gfm/SmoteOrig_clust-1.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/SmoteOrig_clust-2.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/SmoteOrig_clust-3.png)<!-- -->
+``` r
+if (rerun == T){
+  ech_smote_clust = SmoteClassif(cluster ~ .,ech_MC)
+}
+hist(ech_smote_clust$X,breaks=100, col = "antiquewhite",freq=F,right = T)
+points(ech_smote_clust$X,dbeta(ech_smote_clust$X,alpha_pop,beta_pop),col="red")
+```
+
+![](DAIR_Illustration_files/figure-gfm/SmoteOrig_clust-1.png)<!-- -->
+
+``` r
+hist(ech_smote_clust$X, col=rgb(0,0,1,1/4),breaks = 100,prob=T) 
+hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 100,prob=T, add=T) 
+hist(ech0$X,col=rgb(1,0,0,1/4),breaks = 100,prob=T, add=T)
+```
+
+![](DAIR_Illustration_files/figure-gfm/SmoteOrig_clust-2.png)<!-- -->
+
+``` r
+plot(ech_smote_clust$X,ech_smote_clust$Y)
+points(ech0$X,ech0$Y,col="red")
+```
+
+![](DAIR_Illustration_files/figure-gfm/SmoteOrig_clust-3.png)<!-- -->
 
 Results non relevant
 
@@ -575,7 +1146,37 @@ Results non relevant
 
 On $Y$ :
 
+``` r
+if (rerun == T){
+  try({
+    ech_smoGN_Y = SMOGNRegress(Y ~ .,ech0)
+    hist(ech_smoGN_Y$X,breaks=50, col = "antiquewhite",freq=F,right = T)
+    points(ech_smoGN_Y$X,dbeta(ech_smoGN_Y$X,alpha_pop,beta_pop),col="red")
+    hist(ech_smoGN_Y$X, col=rgb(0,0,1,1/4),breaks = 50,prob=T)
+    hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 50,prob=T, add=T)
+    hist(ech0$X,col=rgb(1,0,0,1/4),breaks = 50,prob=T, add=T)
+    plot(ech_smoGN_Y$X,ech_smoGN_Y$Y)
+    points(ech0$X,ech0$Y,col="red")
+  })
+}
+```
+
 On $X$ :
+
+``` r
+if (rerun == T){
+  ech_smoGN = SMOGNRegress(X ~ .,ech0)
+}
+try({
+  hist(ech_smoGN$X,breaks=50, col = "antiquewhite",freq=F,right = T)
+  points(ech_smoGN$X,dbeta(ech_smoGN$X,alpha_pop,beta_pop),col="red")
+  hist(ech_smoGN$X, col=rgb(0,0,1,1/4),breaks = 50,prob=T)
+  hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 50,prob=T, add=T)
+  hist(ech0$X,col=rgb(1,0,0,1/4),breaks = 50,prob=T, add=T)
+  plot(ech_smoGN$X,ech_smoGN$Y)
+  points(ech0$X,ech0$Y,col="red")
+})
+```
 
 ![](DAIR_Illustration_files/figure-gfm/SmoGN-1.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/SmoGN-2.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/SmoGN-3.png)<!-- -->
 *Error* : “Error in SMOGNRegress(X \~ ., ech0) : All the points have
@@ -618,11 +1219,52 @@ hist(ech0$X, col=rgb(1,0,0,1/4),breaks = 100,prob=T, add=T)
 
 ![](DAIR_Illustration_files/figure-gfm/unnamed-chunk-2-2.png)<!-- -->
 
-![](DAIR_Illustration_files/figure-gfm/Synthpop-RF-1.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/Synthpop-RF-2.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/Synthpop-RF-3.png)<!-- -->
+``` r
+if (rerun == T){
+  ech_RF = syn(ech0,method="rf", visit.sequence = c("X","Y"),k=10000)
+  ech_RF = ech_RF$syn
+}
+hist(ech_RF$X,breaks=100, col = "antiquewhite",freq=F,right = T)
+points(ech_RF$X,dbeta(ech_RF$X,alpha_pop,beta_pop),col="red")
+```
+
+![](DAIR_Illustration_files/figure-gfm/Synthpop-RF-1.png)<!-- -->
+
+``` r
+hist(ech_RF$X, col=rgb(0,0,1,1/4),breaks = 100,prob=T)  
+hist(ech_add$X, col=rgb(1,0,0,1/4),breaks = 100,prob=T, add=T) 
+hist(ech0$X,col=rgb(1,0,0,1/4),breaks = 100,prob=T, add=T)
+```
+
+![](DAIR_Illustration_files/figure-gfm/Synthpop-RF-2.png)<!-- -->
+
+``` r
+plot(ech_RF$X,ech_RF$Y)
+points(ech0$X,ech0$Y,col="red")
+```
+
+![](DAIR_Illustration_files/figure-gfm/Synthpop-RF-3.png)<!-- -->
 
 *Conditionnal application by cluster*
 
+``` r
+if (rerun == T){
+  ech_RF2 = syn(ech_MC[,c("X","Y","cluster")],method="rf", visit.sequence = c("cluster","X","Y"),k=10000)
+  ech_RF2 = ech_RF2$syn
+  
+  # WR algorithm
+  ech_RF2 = WR(ech_RF2,ech_RF2$X,n_ech)
+}
+```
+
 Graphical analysis of the rebalanced sample
+
+``` r
+### Graphics
+ech_synth = ech_RF2
+name_synth = "ech_RF"
+graph(ech_synth,name_synth)
+```
 
 ![](DAIR_Illustration_files/figure-gfm/Synthpop-RF2_res-1.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/Synthpop-RF2_res-2.png)<!-- -->![](DAIR_Illustration_files/figure-gfm/Synthpop-RF2_res-3.png)<!-- -->
 
@@ -632,21 +1274,98 @@ Graphical analysis of the rebalanced sample
 
 ### Balanced sample
 
+``` r
+dat = ech_rep
+name_dat = "GAM_ech_rep"
+
+
+## Predictions
+reg = gam(Y ~  s(X) , data = dat)
+p <- predict(reg, test, se.fit=T)
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+
+y_pred = p$fit
+res = summary(reg)
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_pop-1.png)<!-- -->
+
+``` r
+## Indicators
+gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
+```
 
     ## [1] "deviance expliquee : 97.7"
 
+``` r
+gam_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(gam_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 10.24"
+
+``` r
+gam_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(gam_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 97.89"
 
+``` r
+gam_hell_X[k] = hellinger(pop$X, dat$X)
+gam_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_pop-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3" )) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predGAM_pop-3.png)<!-- -->
 
+``` r
+ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
+```
+
     ## `geom_smooth()` using formula = 'y ~ x'
+
+``` r
+graph_Y = function (name_dat){
+  ## target variable analysis
+  print(ggplot() +
+    geom_line(aes(x=test$X, y=y_pred, colour="pred"), lwd = 1.5) +
+      geom_line(aes(x=test$X, y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
+      geom_line(aes(x=test$X, y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
+      geom_point(alpha=0.5,aes(x=test$X, y=y_test),colour="chartreuse4", shape=19, size=1)+
+      stat_smooth(aes(x=test$X, y=y_test,colour="test"),method = loess, lwd=1.5)+
+      scale_color_manual(name = "dataset",values = c("pred" = "deepskyblue4", "test" = "darkgreen", "conf_int" = "deepskyblue3")) +   
+      theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)))
+  ggsave(paste0("Sorties_illustration/pred_Y_",name_dat,"-vs-test.png"),width=7.29, height=4.5)
+}
+graph_Y(name_dat)
+```
+
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
@@ -654,19 +1373,79 @@ Graphical analysis of the rebalanced sample
 
 #### Imbalanced Sample
 
+``` r
+dat = ech0
+name_dat = "GAM_ech0"
+
+## Predictions
+reg = gam(Y ~  s(X) , data = dat)
+p <- predict(reg, test, se.fit = TRUE)
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+res = summary(reg)
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech0-1.png)<!-- -->
+
+``` r
+## Indicators
+gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
+```
 
     ## [1] "deviance expliquee : 96.47"
 
+``` r
+gam_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(gam_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 13.32"
+
+``` r
+gam_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(gam_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 96.61"
 
+``` r
+gam_hell_X[k] = hellinger(pop$X, dat$X)
+gam_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech0-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech0-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -675,19 +1454,79 @@ Graphical analysis of the rebalanced sample
 
 #### Weighted Resampling (WR) sample
 
+``` r
+dat = ech_add
+name_dat = "GAM_ech_add"
+
+## Predictions
+reg = gam(Y ~  s(X) , data = dat)
+p <- predict(reg, test, se.fit = TRUE)
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+res = summary(reg)
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech_add-1.png)<!-- -->
+
+``` r
+## Indicators
+gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
+```
 
     ## [1] "deviance expliquee : 97.46"
 
+``` r
+gam_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(gam_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 12.72"
+
+``` r
+gam_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(gam_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 96.89"
 
+``` r
+gam_hell_X[k] = hellinger(pop$X, dat$X)
+gam_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech_add-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech_add-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -696,19 +1535,79 @@ Graphical analysis of the rebalanced sample
 
 #### GN-WR sample
 
+``` r
+dat = ech_GN_SC
+name_dat = "GAM_ech_GN_SC"
+
+## Predictions
+reg = gam(Y ~  s(X) , data = dat)
+p <- predict(reg, test, se.fit = TRUE)
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+res = summary(reg)
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech_GN_SC-1.png)<!-- -->
+
+``` r
+## Indicators
+gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
+```
 
     ## [1] "deviance expliquee : 89.56"
 
+``` r
+gam_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(gam_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 15.06"
+
+``` r
+gam_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(gam_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 95.53"
 
+``` r
+gam_hell_X[k] = hellinger(pop$X, dat$X)
+gam_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech_GN_SC-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech_GN_SC-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -717,19 +1616,79 @@ Graphical analysis of the rebalanced sample
 
 #### GN_GMM-WR sample
 
+``` r
+dat = GN_GMM
+name_dat = "GAM_GN_GMM"
+
+## Predictions
+reg = gam(Y ~  s(X) , data = dat)
+p <- predict(reg, test, se.fit = TRUE)
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+res = summary(reg)
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_GN_GMM-1.png)<!-- -->
+
+``` r
+## Indicators
+gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
+```
 
     ## [1] "deviance expliquee : 95.37"
 
+``` r
+gam_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(gam_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 12.25"
+
+``` r
+gam_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(gam_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 97.05"
 
+``` r
+gam_hell_X[k] = hellinger(pop$X, dat$X)
+gam_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_GN_GMM-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predGAM_GN_GMM-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -738,19 +1697,79 @@ Graphical analysis of the rebalanced sample
 
 #### ROSE-WR sample
 
+``` r
+dat = ech_ROSE_SC
+name_dat = "GAM_ech_ROSE_SC"
+
+## Predictions
+reg = gam(Y ~  s(X) , data = dat)
+p <- predict(reg, test, se.fit = TRUE)
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+res = summary(reg)
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech_ROSE_SC-1.png)<!-- -->
+
+``` r
+## Indicators
+gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
+```
 
     ## [1] "deviance expliquee : 87.51"
 
+``` r
+gam_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(gam_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 16.84"
+
+``` r
+gam_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(gam_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 94.5"
 
+``` r
+gam_hell_X[k] = hellinger(pop$X, dat$X)
+gam_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech_ROSE_SC-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech_ROSE_SC-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -759,19 +1778,78 @@ Graphical analysis of the rebalanced sample
 
 #### ROSE_GMM-WR sample
 
+``` r
+dat = ROSE_GMM
+name_dat = "GAM_ROSE_GMM"
+
+## Predictions
+reg = gam(Y ~  s(X) , data = dat)
+p <- predict(reg, test, se.fit = TRUE)
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+res = summary(reg)
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ROSE_GMM-1.png)<!-- -->
+
+``` r
+## Indicators
+gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
+```
 
     ## [1] "deviance expliquee : 93.14"
 
+``` r
+gam_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(gam_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 13.29"
+
+``` r
+gam_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(gam_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 96.55"
 
+``` r
+gam_hell_X[k] = hellinger(pop$X, dat$X)
+gam_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ROSE_GMM-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ROSE_GMM-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -780,19 +1858,79 @@ Graphical analysis of the rebalanced sample
 
 #### KDE-WR sample
 
+``` r
+dat = kde_boot
+name_dat = "GAM_kde_boot"
+
+## Predictions
+reg = gam(Y ~  s(X) , data = dat)
+p <- predict(reg, test, se.fit = TRUE)
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+res = summary(reg)
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_kde_boot-1.png)<!-- -->
+
+``` r
+## Indicators
+gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
+```
 
     ## [1] "deviance expliquee : 96.6"
 
+``` r
+gam_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(gam_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 21.83"
+
+``` r
+gam_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(gam_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 92.02"
 
+``` r
+gam_hell_X[k] = hellinger(pop$X, dat$X)
+gam_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_kde_boot-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predGAM_kde_boot-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -801,19 +1939,79 @@ Graphical analysis of the rebalanced sample
 
 #### KDE_GMM-WR sample
 
+``` r
+dat = kde_boot_GMM
+name_dat = "GAM_kde_boot_GMM"
+
+## Predictions
+reg = gam(Y ~  s(X) , data = dat)
+p <- predict(reg, test, se.fit = TRUE)
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+res = summary(reg)
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_kde_boot_GMM-1.png)<!-- -->
+
+``` r
+## Indicators
+gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
+```
 
     ## [1] "deviance expliquee : 97.81"
 
+``` r
+gam_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(gam_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 13"
+
+``` r
+gam_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(gam_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 96.91"
 
+``` r
+gam_hell_X[k] = hellinger(pop$X, dat$X)
+gam_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_kde_boot_GMM-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predGAM_kde_boot_GMM-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -822,19 +2020,79 @@ Graphical analysis of the rebalanced sample
 
 #### GMM-WR sample
 
+``` r
+dat = GMM
+name_dat = "GAM_GMM"
+
+## Predictions
+reg = gam(Y ~  s(X) , data = dat)
+p <- predict(reg, test, se.fit = TRUE)
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+res = summary(reg)
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_GMM-1.png)<!-- -->
+
+``` r
+## Indicators
+gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
+```
 
     ## [1] "deviance expliquee : 97.55"
 
+``` r
+gam_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(gam_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 15.06"
+
+``` r
+gam_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(gam_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 95.92"
 
+``` r
+gam_hell_X[k] = hellinger(pop$X, dat$X)
+gam_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_GMM-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predGAM_GMM-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -843,19 +2101,79 @@ Graphical analysis of the rebalanced sample
 
 #### FA_GMM-WR sample
 
+``` r
+dat = FA_GMM
+name_dat = "GAM_FA_GMM"
+
+## Predictions
+reg = gam(Y ~  s(X) , data = dat)
+p <- predict(reg, test, se.fit = TRUE)
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+res = summary(reg)
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_FA_GMM-1.png)<!-- -->
+
+``` r
+## Indicators
+gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
+```
 
     ## [1] "deviance expliquee : 97.64"
 
+``` r
+gam_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(gam_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 14.3"
+
+``` r
+gam_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(gam_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 96.15"
 
+``` r
+gam_hell_X[k] = hellinger(pop$X, dat$X)
+gam_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_FA_GMM-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predGAM_FA_GMM-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -864,19 +2182,79 @@ Graphical analysis of the rebalanced sample
 
 #### Copula-WR sample
 
+``` r
+dat = ech_copule
+name_dat = "GAM_ech_copule"
+
+## Predictions
+reg = gam(Y ~  s(X) , data = dat)
+p <- predict(reg, test, se.fit = TRUE)
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+res = summary(reg)
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech_copule-1.png)<!-- -->
+
+``` r
+## Indicators
+gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
+```
 
     ## [1] "deviance expliquee : 95.41"
 
+``` r
+gam_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(gam_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 25.55"
+
+``` r
+gam_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(gam_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 90.11"
 
+``` r
+gam_hell_X[k] = hellinger(pop$X, dat$X)
+gam_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech_copule-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech_copule-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -885,19 +2263,79 @@ Graphical analysis of the rebalanced sample
 
 #### GAN-WR sample
 
+``` r
+dat = ech_GAN
+name_dat = "GAM_ech_GAN"
+
+## Predictions
+reg = gam(Y ~  s(X) , data = dat)
+p <- predict(reg, test, se.fit = TRUE)
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+res = summary(reg)
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech_GAN-1.png)<!-- -->
+
+``` r
+## Indicators
+gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
+```
 
     ## [1] "deviance expliquee : 93.91"
 
+``` r
+gam_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(gam_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 24.39"
+
+``` r
+gam_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(gam_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 91.49"
 
+``` r
+gam_hell_X[k] = hellinger(pop$X, dat$X)
+gam_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech_GAN-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech_GAN-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -906,19 +2344,79 @@ Graphical analysis of the rebalanced sample
 
 #### GAN_GMM-WR sample
 
+``` r
+dat = ech_ctganSynth_GMM
+name_dat = "GAM_ech_ctganSynth_GMM"
+
+## Predictions
+reg = gam(Y ~  s(X) , data = dat)
+p <- predict(reg, test, se.fit = TRUE)
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+res = summary(reg)
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech_ctganSynth_GMM-1.png)<!-- -->
+
+``` r
+## Indicators
+gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
+```
 
     ## [1] "deviance expliquee : 85.91"
 
+``` r
+gam_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(gam_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 18.19"
+
+``` r
+gam_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(gam_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 93.39"
 
+``` r
+gam_hell_X[k] = hellinger(pop$X, dat$X)
+gam_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech_ctganSynth_GMM-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech_ctganSynth_GMM-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -927,19 +2425,78 @@ Graphical analysis of the rebalanced sample
 
 #### SMOTE-WR sample
 
+``` r
+dat = ech_smote
+name_dat = "GAM_ech_smote"
+
+## Predictions
+reg = gam(Y ~  s(X) , data = dat)
+p <- predict(reg, test, se.fit = TRUE)
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+res = summary(reg)
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech_smote-1.png)<!-- -->
+
+``` r
+## Indicators
+gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
+```
 
     ## [1] "deviance expliquee : 97.43"
 
+``` r
+gam_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(gam_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 13.44"
+
+``` r
+gam_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(gam_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 96.52"
 
+``` r
+gam_hell_X[k] = hellinger(pop$X, dat$X)
+gam_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech_smote-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech_smote-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -948,19 +2505,79 @@ Graphical analysis of the rebalanced sample
 
 #### SMOTE_GMM-WR sample
 
+``` r
+dat = ech_smote_GMM
+name_dat = "GAM_ech_smote_GMM"
+
+## Predictions
+reg = gam(Y ~  s(X) , data = dat)
+p <- predict(reg, test, se.fit = TRUE)
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+res = summary(reg)
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech_smote_GMM-1.png)<!-- -->
+
+``` r
+## Indicators
+gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
+```
 
     ## [1] "deviance expliquee : 98.2"
 
+``` r
+gam_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(gam_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 11.24"
+
+``` r
+gam_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(gam_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 97.48"
 
+``` r
+gam_hell_X[k] = hellinger(pop$X, dat$X)
+gam_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech_smote_GMM-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech_smote_GMM-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -969,19 +2586,79 @@ Graphical analysis of the rebalanced sample
 
 #### RF-WR sample
 
+``` r
+dat = ech_RF2
+name_dat = "GAM_ech_RF2"
+
+## Predictions
+reg = gam(Y ~  s(X) , data = dat)
+p <- predict(reg, test, se.fit = TRUE)
+upr <- p$fit + (2 * p$se.fit)
+lwr <- p$fit - (2 * p$se.fit)
+y_pred = p$fit
+res = summary(reg)
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech_RF2-1.png)<!-- -->
+
+``` r
+## Indicators
+gam_devExp[k] = res$dev.expl ; print(paste0("deviance expliquee : " , round(gam_devExp[k]*100,2)))
+```
 
     ## [1] "deviance expliquee : 87.96"
 
+``` r
+gam_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(gam_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 17.66"
+
+``` r
+gam_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(gam_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 94.17"
 
+``` r
+gam_hell_X[k] = hellinger(pop$X, dat$X)
+gam_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+gam_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+gam_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech_RF2-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = 2) +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = 2) +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)) 
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predGAM_ech_RF2-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_GAM_","ech_RF","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -992,15 +2669,76 @@ Graphical analysis of the rebalanced sample
 
 #### Balanced sample
 
+``` r
+dat = ech_rep
+name_dat = "ech_rep"
+
+## Predictions
+X = dat$X
+pe = density(X,n=length(X))
+pe = approx(pe$x,pe$y,xout=dat$X)$y
+pt = Pt(X)
+w = pt / pe
+q = w / sum(w)
+reg = randomForest( Y ~ X, data = dat, weights = q,nodesize=2)
+
+p = predict(reg, test, predict.all=TRUE)
+y_pred = p$aggregate
+upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
+lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
+
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_pop-1.png)<!-- -->
+
+``` r
+## Indicators
+RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 96.5"
 
+``` r
+RF_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(RF_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 12.09"
+
+``` r
+RF_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(RF_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 97.07"
 
+``` r
+RF_hell_X[k] = hellinger(pop$X, dat$X)
+RF_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+RF_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_pop-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
+  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
+  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
+  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1009,10 +2747,31 @@ Graphical analysis of the rebalanced sample
 
 ![](DAIR_Illustration_files/figure-gfm/predRF_pop-3.png)<!-- -->
 
+``` r
+ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
+```
+
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
+
+``` r
+graph_Y_RF = function (name_dat){
+  ## target variable analysis 
+  print(ggplot() +
+      stat_smooth(aes(x=test$X, y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
+      stat_smooth(aes(x=test$X, y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+      stat_smooth(aes(x=test$X, y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+      geom_point(alpha=0.5,aes(x=test$X, y=y_test),colour="chartreuse4", shape=19, size=1)+
+      stat_smooth(aes(x=test$X, y=y_test,colour="test"),method = loess, lwd=1.5)+
+      scale_color_manual(name = "dataset",values = c("pred" = "deepskyblue4", "test" = "darkgreen", "conf_int" = "deepskyblue3")) +   
+      theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0)))
+ ggsave(paste0("Sorties_illustration/pred_Y_RF_",name_dat,"-vs-test.png"),width=7.29, height=4.5)
+}
+graph_Y_RF(name_dat)
+```
+
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1026,15 +2785,76 @@ Graphical analysis of the rebalanced sample
 
 #### Imbalanced sample
 
+``` r
+dat = ech0
+name_dat = "ech0"
+
+## Predictions
+X = dat$X
+pe = density(X,n=length(X))
+pe = approx(pe$x,pe$y,xout=dat$X)$y
+pt = Pt(X)
+w = pt / pe
+q = w / sum(w)
+reg = randomForest( Y ~ X, data = dat, weights = q,nodesize=2)
+
+p = predict(reg, test, predict.all=TRUE)
+y_pred = p$aggregate
+upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
+lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
+
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech0-1.png)<!-- -->
+
+``` r
+## Indicators
+RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 94.61"
 
+``` r
+RF_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(RF_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 15.49"
+
+``` r
+RF_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(RF_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 95.59"
 
+``` r
+RF_hell_X[k] = hellinger(pop$X, dat$X)
+RF_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+RF_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech0-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
+  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
+  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
+  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1042,6 +2862,12 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech0-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y_RF(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1056,15 +2882,76 @@ Graphical analysis of the rebalanced sample
 
 #### Weighted Resampling (WR) sample
 
+``` r
+dat = ech_add
+name_dat = "ech_add"
+
+## Predictions
+X = dat$X
+pe = density(X,n=length(X))
+pe = approx(pe$x,pe$y,xout=dat$X)$y
+pt = Pt(X)
+w = pt / pe
+q = w / sum(w)
+reg = randomForest( Y ~ X, data = dat, weights = q,nodesize=2)
+
+p = predict(reg, test, predict.all=TRUE)
+y_pred = p$aggregate
+upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
+lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
+
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech_add-1.png)<!-- -->
+
+``` r
+## Indicators
+RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 98.25"
 
+``` r
+RF_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(RF_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 16.06"
+
+``` r
+RF_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(RF_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 95.21"
 
+``` r
+RF_hell_X[k] = hellinger(pop$X, dat$X)
+RF_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+RF_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech_add-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
+  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
+  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
+  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1072,6 +2959,12 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech_add-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y_RF(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1086,15 +2979,76 @@ Graphical analysis of the rebalanced sample
 
 #### GN-WR sample
 
+``` r
+dat = ech_GN_SC
+name_dat = "ech_GN_SC"
+
+## Predictions
+X = dat$X
+pe = density(X,n=length(X))
+pe = approx(pe$x,pe$y,xout=dat$X)$y
+pt = Pt(X)
+w = pt / pe
+q = w / sum(w)
+reg = randomForest( Y ~ X, data = dat, weights = q,nodesize=2)
+
+p = predict(reg, test, predict.all=TRUE)
+y_pred = p$aggregate
+upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
+lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
+
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech_GN_SC-1.png)<!-- -->
+
+``` r
+## Indicators
+RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 85.11"
 
+``` r
+RF_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(RF_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 21.75"
+
+``` r
+RF_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(RF_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 91.04"
 
+``` r
+RF_hell_X[k] = hellinger(pop$X, dat$X)
+RF_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+RF_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech_GN_SC-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
+  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
+  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
+  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1102,6 +3056,12 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech_GN_SC-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y_RF(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1116,15 +3076,75 @@ Graphical analysis of the rebalanced sample
 
 #### GN_GMM-WR sample
 
+``` r
+dat = GN_GMM
+name_dat = "GN_GMM"
+
+## Predictions
+X = dat$X
+pe = density(X,n=length(X))
+pe = approx(pe$x,pe$y,xout=dat$X)$y
+pt = Pt(X)
+w = pt / pe
+q = w / sum(w)
+reg = randomForest( Y ~ X, data = dat, weights = q,nodesize=2)
+p = predict(reg, test, predict.all=TRUE)
+y_pred = p$aggregate
+upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
+lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
+
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_GN_GMM-1.png)<!-- -->
+
+``` r
+## Indicators
+RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 93.17"
 
+``` r
+RF_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(RF_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 16.05"
+
+``` r
+RF_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(RF_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 95.02"
 
+``` r
+RF_hell_X[k] = hellinger(pop$X, dat$X)
+RF_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+RF_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_GN_GMM-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
+  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
+  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
+  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1132,6 +3152,12 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predRF_GN_GMM-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y_RF(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1146,15 +3172,75 @@ Graphical analysis of the rebalanced sample
 
 #### ROSE-WR sample
 
+``` r
+dat = ech_ROSE_SC
+name_dat = "ech_ROSE_SC"
+
+## Predictions
+X = dat$X
+pe = density(X,n=length(X))
+pe = approx(pe$x,pe$y,xout=dat$X)$y
+pt = Pt(X)
+w = pt / pe
+q = w / sum(w)
+reg = randomForest( Y ~ X, data = dat, weights = q,nodesize=2)
+p = predict(reg, test, predict.all=TRUE)
+y_pred = p$aggregate
+upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
+lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
+
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech_ROSE_SC-1.png)<!-- -->
+
+``` r
+## Indicators
+RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 90.69"
 
+``` r
+RF_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(RF_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 24.61"
+
+``` r
+RF_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(RF_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 88.77"
 
+``` r
+RF_hell_X[k] = hellinger(pop$X, dat$X)
+RF_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+RF_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech_ROSE_SC-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
+  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
+  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
+  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1162,6 +3248,12 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech_ROSE_SC-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y_RF(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1176,15 +3268,75 @@ Graphical analysis of the rebalanced sample
 
 #### ROSE_GMM-WR sample
 
+``` r
+dat = ROSE_GMM
+name_dat = "ROSE_GMM"
+
+## Predictions
+X = dat$X
+pe = density(X,n=length(X))
+pe = approx(pe$x,pe$y,xout=dat$X)$y
+pt = Pt(X)
+w = pt / pe
+q = w / sum(w)
+reg = randomForest( Y ~ X, data = dat, weights = q,nodesize=2)
+p = predict(reg, test, predict.all=TRUE)
+y_pred = p$aggregate
+upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
+lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
+
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_ROSE_GMM-1.png)<!-- -->
+
+``` r
+## Indicators
+RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 89.71"
 
+``` r
+RF_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(RF_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 18.36"
+
+``` r
+RF_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(RF_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 93.57"
 
+``` r
+RF_hell_X[k] = hellinger(pop$X, dat$X)
+RF_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+RF_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_ROSE_GMM-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
+  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
+  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
+  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1192,6 +3344,12 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predRF_ROSE_GMM-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y_RF(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1206,15 +3364,75 @@ Graphical analysis of the rebalanced sample
 
 #### KDE-WR sample
 
+``` r
+dat = kde_boot
+name_dat = "kde_boot"
+
+## Predictions
+X = dat$X
+pe = density(X,n=length(X))
+pe = approx(pe$x,pe$y,xout=dat$X)$y
+pt = Pt(X)
+w = pt / pe
+q = w / sum(w)
+reg = randomForest( Y ~ X, data = dat, weights = q,nodesize=2)
+p = predict(reg, test, predict.all=TRUE)
+y_pred = p$aggregate
+upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
+lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
+
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_kde_boot-1.png)<!-- -->
+
+``` r
+## Indicators
+RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 95.12"
 
+``` r
+RF_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(RF_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 22.24"
+
+``` r
+RF_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(RF_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 91.74"
 
+``` r
+RF_hell_X[k] = hellinger(pop$X, dat$X)
+RF_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+RF_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_kde_boot-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
+  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
+  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
+  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1222,6 +3440,12 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predRF_kde_boot-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y_RF(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1236,15 +3460,75 @@ Graphical analysis of the rebalanced sample
 
 #### KDE_GMM-WR sample
 
+``` r
+dat = kde_boot_GMM
+name_dat = "kde_boot_GMM"
+
+## Predictions
+X = dat$X
+pe = density(X,n=length(X))
+pe = approx(pe$x,pe$y,xout=dat$X)$y
+pt = Pt(X)
+w = pt / pe
+q = w / sum(w)
+reg = randomForest( Y ~ X, data = dat, weights = q,nodesize=2)
+p = predict(reg, test, predict.all=TRUE)
+y_pred = p$aggregate
+upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
+lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
+
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_kde_boot_GMM-1.png)<!-- -->
+
+``` r
+## Indicators
+RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 96.91"
 
+``` r
+RF_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(RF_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 15.11"
+
+``` r
+RF_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(RF_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 95.9"
 
+``` r
+RF_hell_X[k] = hellinger(pop$X, dat$X)
+RF_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+RF_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_kde_boot_GMM-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
+  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
+  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
+  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1252,6 +3536,12 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predRF_kde_boot_GMM-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y_RF(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1266,15 +3556,75 @@ Graphical analysis of the rebalanced sample
 
 #### GMM-WR sample
 
+``` r
+dat = GMM
+name_dat = "GMM"
+
+## Predictions
+X = dat$X
+pe = density(X,n=length(X))
+pe = approx(pe$x,pe$y,xout=dat$X)$y
+pt = Pt(X)
+w = pt / pe
+q = w / sum(w)
+reg = randomForest( Y ~ X, data = dat, weights = q,nodesize=2)
+p = predict(reg, test, predict.all=TRUE)
+y_pred = p$aggregate
+upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
+lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
+
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_GMM-1.png)<!-- -->
+
+``` r
+## Indicators
+RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 96.32"
 
+``` r
+RF_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(RF_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 16.6"
+
+``` r
+RF_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(RF_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 95.15"
 
+``` r
+RF_hell_X[k] = hellinger(pop$X, dat$X)
+RF_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+RF_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_GMM-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
+  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
+  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
+  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1282,6 +3632,12 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predRF_GMM-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y_RF(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1296,15 +3652,75 @@ Graphical analysis of the rebalanced sample
 
 #### FA_GMM-WR sample
 
+``` r
+dat = FA_GMM
+name_dat = "FA_GMM"
+
+## Predictions
+X = dat$X
+pe = density(X,n=length(X))
+pe = approx(pe$x,pe$y,xout=dat$X)$y
+pt = Pt(X)
+w = pt / pe
+q = w / sum(w)
+reg = randomForest( Y ~ X, data = dat, weights = q,nodesize=2)
+p = predict(reg, test, predict.all=TRUE)
+y_pred = p$aggregate
+upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
+lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
+
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_FA_GMM-1.png)<!-- -->
+
+``` r
+## Indicators
+RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 97.02"
 
+``` r
+RF_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(RF_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 16.41"
+
+``` r
+RF_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(RF_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 94.96"
 
+``` r
+RF_hell_X[k] = hellinger(pop$X, dat$X)
+RF_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+RF_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_FA_GMM-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
+  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
+  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
+  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1312,6 +3728,12 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predRF_FA_GMM-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y_RF(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1326,15 +3748,75 @@ Graphical analysis of the rebalanced sample
 
 #### Copula-WR sample
 
+``` r
+dat = ech_copule
+name_dat = "ech_copule"
+
+## Predictions
+X = dat$X
+pe = density(X,n=length(X))
+pe = approx(pe$x,pe$y,xout=dat$X)$y
+pt = Pt(X)
+w = pt / pe
+q = w / sum(w)
+reg = randomForest( Y ~ X, data = dat, weights = q,nodesize=2)
+p = predict(reg, test, predict.all=TRUE)
+y_pred = p$aggregate
+upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
+lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
+
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech_copule-1.png)<!-- -->
+
+``` r
+## Indicators
+RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 93.44"
 
+``` r
+RF_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(RF_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 22.5"
+
+``` r
+RF_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(RF_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 91.73"
 
+``` r
+RF_hell_X[k] = hellinger(pop$X, dat$X)
+RF_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+RF_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech_copule-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
+  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
+  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
+  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1342,6 +3824,12 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech_copule-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y_RF(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1356,15 +3844,75 @@ Graphical analysis of the rebalanced sample
 
 #### GAN-WR sample
 
+``` r
+dat = ech_GAN
+name_dat = "ech_GAN"
+
+## Predictions
+X = dat$X
+pe = density(X,n=length(X))
+pe = approx(pe$x,pe$y,xout=dat$X)$y
+pt = Pt(X)
+w = pt / pe
+q = w / sum(w)
+reg = randomForest( Y ~ X, data = dat, weights = q,nodesize=2)
+p = predict(reg, test, predict.all=TRUE)
+y_pred = p$aggregate
+upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
+lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
+
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech_GAN-1.png)<!-- -->
+
+``` r
+## Indicators
+RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 91.16"
 
+``` r
+RF_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(RF_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 26.26"
+
+``` r
+RF_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(RF_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 90.05"
 
+``` r
+RF_hell_X[k] = hellinger(pop$X, dat$X)
+RF_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+RF_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech_GAN-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
+  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
+  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
+  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1372,6 +3920,12 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech_GAN-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y_RF(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1386,15 +3940,75 @@ Graphical analysis of the rebalanced sample
 
 #### GAN_GMM-WR sample
 
+``` r
+dat = ech_ctganSynth_GMM
+name_dat = "ech_ctganSynth_GMM"
+
+## Predictions
+X = dat$X
+pe = density(X,n=length(X))
+pe = approx(pe$x,pe$y,xout=dat$X)$y
+pt = Pt(X)
+w = pt / pe
+q = w / sum(w)
+reg = randomForest( Y ~ X, data = dat, weights = q,nodesize=2)
+p = predict(reg, test, predict.all=TRUE)
+y_pred = p$aggregate
+upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
+lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
+
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech_ctganSynth_GMM-1.png)<!-- -->
+
+``` r
+## Indicators
+RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 78.9"
 
+``` r
+RF_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(RF_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 24.21"
+
+``` r
+RF_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(RF_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 88.36"
 
+``` r
+RF_hell_X[k] = hellinger(pop$X, dat$X)
+RF_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+RF_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech_ctganSynth_GMM-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
+  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
+  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
+  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1402,6 +4016,12 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech_ctganSynth_GMM-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y_RF(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1416,15 +4036,75 @@ Graphical analysis of the rebalanced sample
 
 #### SMOTE-WR sample
 
+``` r
+dat = ech_smote
+name_dat = "ech_smote"
+
+## Predictions
+X = dat$X
+pe = density(X,n=length(X))
+pe = approx(pe$x,pe$y,xout=dat$X)$y
+pt = Pt(X)
+w = pt / pe
+q = w / sum(w)
+reg = randomForest( Y ~ X, data = dat, weights = q,nodesize=2)
+p = predict(reg, test, predict.all=TRUE)
+y_pred = p$aggregate
+upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
+lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
+
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech_smote-1.png)<!-- -->
+
+``` r
+## Indicators
+RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 96.68"
 
+``` r
+RF_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(RF_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 16.07"
+
+``` r
+RF_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(RF_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 94.88"
 
+``` r
+RF_hell_X[k] = hellinger(pop$X, dat$X)
+RF_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+RF_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech_smote-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
+  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
+  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
+  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1432,6 +4112,12 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech_smote-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y_RF(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1446,15 +4132,75 @@ Graphical analysis of the rebalanced sample
 
 #### SMOTE-GMM-WR sample
 
+``` r
+dat = ech_smote_GMM
+name_dat = "ech_smote_GMM"
+
+## Predictions
+X = dat$X
+pe = density(X,n=length(X))
+pe = approx(pe$x,pe$y,xout=dat$X)$y
+pt = Pt(X)
+w = pt / pe
+q = w / sum(w)
+reg = randomForest( Y ~ X, data = dat, weights = q,nodesize=2)
+p = predict(reg, test, predict.all=TRUE)
+y_pred = p$aggregate
+upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
+lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
+
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech_smote_GMM-1.png)<!-- -->
+
+``` r
+## Indicators
+RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 97.73"
 
+``` r
+RF_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(RF_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 14.75"
+
+``` r
+RF_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(RF_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 95.91"
 
+``` r
+RF_hell_X[k] = hellinger(pop$X, dat$X)
+RF_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+RF_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech_smote_GMM-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
+  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
+  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
+  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1462,6 +4208,12 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech_smote_GMM-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y_RF(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1476,15 +4228,75 @@ Graphical analysis of the rebalanced sample
 
 #### RF-WR sample
 
+``` r
+dat = ech_RF2
+name_dat = "ech_RF2"
+
+## Predictions
+X = dat$X
+pe = density(X,n=length(X))
+pe = approx(pe$x,pe$y,xout=dat$X)$y
+pt = Pt(X)
+w = pt / pe
+q = w / sum(w)
+reg = randomForest( Y ~ X, data = dat, weights = q,nodesize=2)
+p = predict(reg, test, predict.all=TRUE)
+y_pred = p$aggregate
+upr = apply(p$individual, 1, function(x) {quantile(x, 0.975)})
+lwr = apply(p$individual, 1, function(x) {quantile(x, 0.025)})
+
+ymax=max(y_pred,y_test)
+ymin=min(y_pred,y_test)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech_RF2-1.png)<!-- -->
+
+``` r
+## Indicators
+RF_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(RF_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 84.53"
 
+``` r
+RF_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(RF_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 20.41"
+
+``` r
+RF_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(RF_R2[k]*100,2)))
+```
 
     ## [1] "R2 : 91.79"
 
+``` r
+RF_hell_X[k] = hellinger(pop$X, dat$X)
+RF_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+RF_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+RF_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech_RF2-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), col="azure4") + stat_smooth(aes(y=y_test),method = loess, col="darkgreen", lwd=1.5)+
+  ##geom_point(aes(y=y_pred), col="darksalmon", lwd=0.9) + 
+  stat_smooth(aes(y=y_pred, colour="pred"), lwd=1.5, method='loess') + 
+  stat_smooth(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  stat_smooth(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed", method='loess') +
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1492,6 +4304,12 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predRF_ech_RF2-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_RF_","ech0","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y_RF(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1508,19 +4326,78 @@ Graphical analysis of the rebalanced sample
 
 #### Balanced sample
 
+``` r
+dat = ech_rep
+name_dat = "MARS_ech_rep"
+
+## Predictions
+reg = earth(dat$X ,dat$Y,nfold=10, ncross=30, varmod.method='gam')
+p = predict(reg,test,interval="pint")
+upr <- p$upr
+lwr <- p$lwr
+y_pred = p$fit
+ymax=max(y_pred,ymax)
+ymin=min(y_pred,ymin)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_pop-1.png)<!-- -->
+
+``` r
+## Indicators
+mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 97.37"
 
+``` r
+mars_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(mars_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 10.73"
+
+``` r
+mars_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(mars_R2[k] *100,2)))
+```
 
     ## [1] "R2 : 97.68"
 
+``` r
+mars_hell_X[k] = hellinger(pop$X, dat$X)
+mars_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_pop-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_pop-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1529,19 +4406,78 @@ Graphical analysis of the rebalanced sample
 
 #### Imbalanced sample
 
+``` r
+dat = ech0
+name_dat = "MARS_ech0"
+
+## Predictions
+reg = earth(dat$X ,dat$Y,nfold=10, ncross=30, varmod.method='gam')
+p = predict(reg,test,interval="pint")
+upr <- p$upr
+lwr <- p$lwr
+y_pred = p$fit
+ymax=max(y_pred,ymax)
+ymin=min(y_pred,ymin)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech0-1.png)<!-- -->
+
+``` r
+## Indicators
+mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 96.4"
 
+``` r
+mars_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(mars_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 16.52"
+
+``` r
+mars_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(mars_R2[k] *100,2)))
+```
 
     ## [1] "R2 : 95.02"
 
+``` r
+mars_hell_X[k] = hellinger(pop$X, dat$X)
+mars_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech0-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech0-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1550,19 +4486,79 @@ Graphical analysis of the rebalanced sample
 
 #### Weighted Resampling (WR) sample
 
+``` r
+dat = ech_add
+name_dat = "MARS_ech_add"
+
+## Predictions
+reg = earth(dat$X ,dat$Y,nfold=10, ncross=30, varmod.method='gam')
+p = predict(reg,test,interval="pint")
+upr <- p$upr
+lwr <- p$lwr
+y_pred = p$fit
+ymax=max(y_pred,ymax)
+ymin=min(y_pred,ymin)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_add-1.png)<!-- -->
+
+``` r
+## Indicators
+mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 97.36"
 
+``` r
+mars_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(mars_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 13.9"
+
+``` r
+mars_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(mars_R2[k] *100,2)))
+```
 
     ## [1] "R2 : 96.35"
 
+``` r
+mars_hell_X[k] = hellinger(pop$X, dat$X)
+mars_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_add-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_add-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1571,19 +4567,78 @@ Graphical analysis of the rebalanced sample
 
 #### GN-WR sample
 
+``` r
+dat = ech_GN_SC
+name_dat = "MARS_ech_GN_SC"
+
+## Predictions
+reg = earth(dat$X ,dat$Y,nfold=10, ncross=30, varmod.method='gam')
+p = predict(reg,test,interval="pint")
+upr <- p$upr
+lwr <- p$lwr
+y_pred = p$fit
+ymax=max(y_pred,ymax)
+ymin=min(y_pred,ymin)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_GN_SC-1.png)<!-- -->
+
+``` r
+## Indicators
+mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 89.5"
 
+``` r
+mars_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(mars_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 15.15"
+
+``` r
+mars_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(mars_R2[k] *100,2)))
+```
 
     ## [1] "R2 : 95.5"
 
+``` r
+mars_hell_X[k] = hellinger(pop$X, dat$X)
+mars_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_GN_SC-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_GN_SC-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1592,19 +4647,79 @@ Graphical analysis of the rebalanced sample
 
 #### GN_GMM-WR sample
 
+``` r
+dat = GN_GMM
+name_dat = "MARS_GN_GMM"
+
+## Predictions
+reg = earth(dat$X ,dat$Y,nfold=10, ncross=30, varmod.method='gam')
+p = predict(reg,test,interval="pint")
+upr <- p$upr
+lwr <- p$lwr
+y_pred = p$fit
+ymax=max(y_pred,ymax)
+ymin=min(y_pred,ymin)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_GN_GMM-1.png)<!-- -->
+
+``` r
+## Indicators
+mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 95.21"
 
+``` r
+mars_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(mars_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 13.31"
+
+``` r
+mars_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(mars_R2[k] *100,2)))
+```
 
     ## [1] "R2 : 96.56"
 
+``` r
+mars_hell_X[k] = hellinger(pop$X, dat$X)
+mars_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_GN_GMM-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_GN_GMM-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1613,19 +4728,79 @@ Graphical analysis of the rebalanced sample
 
 #### ROSE-WR sample
 
+``` r
+dat = ech_ROSE_SC
+name_dat = "MARS_ech_ROSE_SC"
+
+## Predictions
+reg = earth(dat$X ,dat$Y,nfold=10, ncross=30, varmod.method='gam')
+p = predict(reg,test,interval="pint")
+upr <- p$upr
+lwr <- p$lwr
+y_pred = p$fit
+ymax=max(y_pred,ymax)
+ymin=min(y_pred,ymin)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_ROSE_SC-1.png)<!-- -->
+
+``` r
+## Indicators
+mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 87.51"
 
+``` r
+mars_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(mars_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 17.66"
+
+``` r
+mars_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(mars_R2[k] *100,2)))
+```
 
     ## [1] "R2 : 93.98"
 
+``` r
+mars_hell_X[k] = hellinger(pop$X, dat$X)
+mars_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_ROSE_SC-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_ROSE_SC-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1634,19 +4809,79 @@ Graphical analysis of the rebalanced sample
 
 #### ROSE_GMM-WR sample
 
+``` r
+dat = ROSE_GMM
+name_dat = "MARS_ROSE_GMM"
+
+## Predictions
+reg = earth(dat$X ,dat$Y,nfold=10, ncross=30, varmod.method='gam')
+p = predict(reg,test,interval="pint")
+upr <- p$upr
+lwr <- p$lwr
+y_pred = p$fit
+ymax=max(y_pred,ymax)
+ymin=min(y_pred,ymin)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ROSE_GMM-1.png)<!-- -->
+
+``` r
+## Indicators
+mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 93.08"
 
+``` r
+mars_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(mars_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 13.71"
+
+``` r
+mars_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(mars_R2[k] *100,2)))
+```
 
     ## [1] "R2 : 96.34"
 
+``` r
+mars_hell_X[k] = hellinger(pop$X, dat$X)
+mars_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ROSE_GMM-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ROSE_GMM-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1655,19 +4890,79 @@ Graphical analysis of the rebalanced sample
 
 #### KDE-WR sample
 
+``` r
+dat = kde_boot
+name_dat = "MARS_kde_boot"
+
+## Predictions
+reg = earth(dat$X ,dat$Y,nfold=10, ncross=30, varmod.method='gam')
+p = predict(reg,test,interval="pint")
+upr <- p$upr
+lwr <- p$lwr
+y_pred = p$fit
+ymax=max(y_pred,ymax)
+ymin=min(y_pred,ymin)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_kde_boot-1.png)<!-- -->
+
+``` r
+## Indicators
+mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 96.47"
 
+``` r
+mars_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(mars_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 19.9"
+
+``` r
+mars_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(mars_R2[k] *100,2)))
+```
 
     ## [1] "R2 : 93.34"
 
+``` r
+mars_hell_X[k] = hellinger(pop$X, dat$X)
+mars_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_kde_boot-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_kde_boot-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1676,19 +4971,79 @@ Graphical analysis of the rebalanced sample
 
 #### KDE_GMM-WR sample
 
+``` r
+dat = kde_boot_GMM
+name_dat = "MARS_kde_boot_GMM"
+
+## Predictions
+reg = earth(dat$X ,dat$Y,nfold=10, ncross=30, varmod.method='gam')
+p = predict(reg,test,interval="pint")
+upr <- p$upr
+lwr <- p$lwr
+y_pred = p$fit
+ymax=max(y_pred,ymax)
+ymin=min(y_pred,ymin)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_kde_boot_GMM-1.png)<!-- -->
+
+``` r
+## Indicators
+mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 97.73"
 
+``` r
+mars_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(mars_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 13.17"
+
+``` r
+mars_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(mars_R2[k] *100,2)))
+```
 
     ## [1] "R2 : 96.85"
 
+``` r
+mars_hell_X[k] = hellinger(pop$X, dat$X)
+mars_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_kde_boot_GMM-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_kde_boot_GMM-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1697,19 +5052,79 @@ Graphical analysis of the rebalanced sample
 
 #### GMM-WR sample
 
+``` r
+dat = GMM
+name_dat = "MARS_GMM"
+
+## Predictions
+reg = earth(dat$X ,dat$Y,nfold=10, ncross=30, varmod.method='gam')
+p = predict(reg,test,interval="pint")
+upr <- p$upr
+lwr <- p$lwr
+y_pred = p$fit
+ymax=max(y_pred,ymax)
+ymin=min(y_pred,ymin)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_GMM-1.png)<!-- -->
+
+``` r
+## Indicators
+mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 97.51"
 
+``` r
+mars_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(mars_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 15.07"
+
+``` r
+mars_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(mars_R2[k] *100,2)))
+```
 
     ## [1] "R2 : 95.94"
 
+``` r
+mars_hell_X[k] = hellinger(pop$X, dat$X)
+mars_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_GMM-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_GMM-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1718,19 +5133,79 @@ Graphical analysis of the rebalanced sample
 
 #### FA_GMM-WR sample
 
+``` r
+dat = FA_GMM
+name_dat = "MARS_FA_GMM"
+
+## Predictions
+reg = earth(dat$X ,dat$Y,nfold=10, ncross=30, varmod.method='gam')
+p = predict(reg,test,interval="pint")
+upr <- p$upr
+lwr <- p$lwr
+y_pred = p$fit
+ymax=max(y_pred,ymax)
+ymin=min(y_pred,ymin)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_FA_GMM-1.png)<!-- -->
+
+``` r
+## Indicators
+mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 97.59"
 
+``` r
+mars_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(mars_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 14.48"
+
+``` r
+mars_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(mars_R2[k] *100,2)))
+```
 
     ## [1] "R2 : 96.11"
 
+``` r
+mars_hell_X[k] = hellinger(pop$X, dat$X)
+mars_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_FA_GMM-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_FA_GMM-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1739,19 +5214,79 @@ Graphical analysis of the rebalanced sample
 
 #### Copula-WR sample
 
+``` r
+dat = ech_copule
+name_dat = "MARS_ech_copule"
+
+## Predictions
+reg = earth(dat$X ,dat$Y,nfold=10, ncross=30, varmod.method='gam')
+p = predict(reg,test,interval="pint")
+upr <- p$upr
+lwr <- p$lwr
+y_pred = p$fit
+ymax=max(y_pred,ymax)
+ymin=min(y_pred,ymin)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_copule-1.png)<!-- -->
+
+``` r
+## Indicators
+mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 95.37"
 
+``` r
+mars_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(mars_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 25.11"
+
+``` r
+mars_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(mars_R2[k] *100,2)))
+```
 
     ## [1] "R2 : 90.35"
 
+``` r
+mars_hell_X[k] = hellinger(pop$X, dat$X)
+mars_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_copule-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_copule-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1760,19 +5295,78 @@ Graphical analysis of the rebalanced sample
 
 #### GAN-WR sample
 
+``` r
+dat = ech_GAN
+name_dat = "ech_GAN"
+
+## Predictions
+reg = earth(dat$X ,dat$Y,nfold=10, ncross=30, varmod.method='gam')
+p = predict(reg,test,interval="pint")
+upr <- p$upr
+lwr <- p$lwr
+y_pred = p$fit
+ymax=max(y_pred,ymax)
+ymin=min(y_pred,ymin)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_GAN-1.png)<!-- -->
+
+``` r
+## Indicators
+mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 93.85"
 
+``` r
+mars_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(mars_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 24.66"
+
+``` r
+mars_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(mars_R2[k] *100,2)))
+```
 
     ## [1] "R2 : 91.33"
 
+``` r
+mars_hell_X[k] = hellinger(pop$X, dat$X)
+mars_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_GAN-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_GAN-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1781,19 +5375,78 @@ Graphical analysis of the rebalanced sample
 
 #### GAN_GMM-WR sample
 
+``` r
+dat = ech_ctganSynth_GMM
+name_dat = "MARS_ech_ctganSynth_GMM"
+
+## Predictions
+reg = earth(dat$X ,dat$Y,nfold=10, ncross=30, varmod.method='gam')
+p = predict(reg,test,interval="pint")
+upr <- p$upr
+lwr <- p$lwr
+y_pred = p$fit
+ymax=max(y_pred,ymax)
+ymin=min(y_pred,ymin)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_ctganSynth_GMM-1.png)<!-- -->
+
+``` r
+## Indicators
+mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 85.84"
 
+``` r
+mars_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(mars_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 19.01"
+
+``` r
+mars_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(mars_R2[k] *100,2)))
+```
 
     ## [1] "R2 : 92.74"
 
+``` r
+mars_hell_X[k] = hellinger(pop$X, dat$X)
+mars_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_ctganSynth_GMM-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_ctganSynth_GMM-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1802,19 +5455,79 @@ Graphical analysis of the rebalanced sample
 
 #### SMOTE-WR sample
 
+``` r
+dat = ech_smote
+name_dat = "MARS_ech_smote"
+
+## Predictions
+reg = earth(dat$X ,dat$Y,nfold=10, ncross=30, varmod.method='gam')
+p = predict(reg,test,interval="pint")
+upr <- p$upr
+lwr <- p$lwr
+y_pred = p$fit
+ymax=max(y_pred,ymax)
+ymin=min(y_pred,ymin)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_smote-1.png)<!-- -->
+
+``` r
+## Indicators
+mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 97.37"
 
+``` r
+mars_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(mars_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 14.22"
+
+``` r
+mars_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(mars_R2[k] *100,2)))
+```
 
     ## [1] "R2 : 96.01"
 
+``` r
+mars_hell_X[k] = hellinger(pop$X, dat$X)
+mars_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_smote-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_smote-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1823,19 +5536,79 @@ Graphical analysis of the rebalanced sample
 
 #### SMOTE_GMM-WR sample
 
+``` r
+dat = ech_smote_GMM
+name_dat = "MARS_ech_smote_GMM"
+
+## Predictions
+reg = earth(dat$X ,dat$Y,nfold=10, ncross=30, varmod.method='gam')
+p = predict(reg,test,interval="pint")
+upr <- p$upr
+lwr <- p$lwr
+y_pred = p$fit
+ymax=max(y_pred,ymax)
+ymin=min(y_pred,ymin)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_smote_GMM-1.png)<!-- -->
+
+``` r
+## Indicators
+mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 98.09"
 
+``` r
+mars_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(mars_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 13.55"
+
+``` r
+mars_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(mars_R2[k] *100,2)))
+```
 
     ## [1] "R2 : 96.44"
 
+``` r
+mars_hell_X[k] = hellinger(pop$X, dat$X)
+mars_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_smote_GMM-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_smote_GMM-3.png)<!-- -->
+
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1844,24 +5617,88 @@ Graphical analysis of the rebalanced sample
 
 #### RF-WR sample
 
+``` r
+dat = ech_RF2
+name_dat = "MARS_ech_RF2"
+
+## Predictions
+reg = earth(dat$X ,dat$Y,nfold=10, ncross=30, varmod.method='gam')
+p = predict(reg,test,interval="pint")
+upr <- p$upr
+lwr <- p$lwr
+y_pred = p$fit
+ymax=max(y_pred,ymax)
+ymin=min(y_pred,ymin)
+plot(y_test,y_pred)
+abline(0,1,col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_RF2-1.png)<!-- -->
+
+``` r
+## Indicators
+mars_rsq[k] = mean(reg$rsq) ; print(paste0("pseudo-R2 : " , round(mars_rsq[k]*100,2)))
+```
 
     ## [1] "pseudo-R2 : 87.95"
 
+``` r
+mars_rmse[k] = rmse(y_test,as.numeric(y_pred)) ; print(paste0("RMSE : " , round(mars_rmse[k]*100,2)))
+```
+
     ## [1] "RMSE : 17.31"
+
+``` r
+mars_R2[k] = cor(y_test,as.numeric(y_pred))^2 ; print(paste0("R2 : " , round(mars_R2[k] *100,2)))
+```
 
     ## [1] "R2 : 94.48"
 
+``` r
+mars_hell_X[k] = hellinger(pop$X, dat$X)
+mars_hell_Y[k] = hellinger(y_test, y_pred)
+f_pop = densityfun(pop$X)
+f_dat = densityfun(dat$X)
+mars_kl_X[k] = kl.dist(f_pop(pop$X), f_dat(pop$X))$D
+mars_kl_Y[k] = kl.dist(y_test,y_pred)$D
+k = k + 1
+
+
+## Graphics
+plot(test$X,y_pred, xlab = "X (test)", ylab = "Yhat vs Y (test)", ylim=c(ymin,ymax))
+points(test$X, y_test, col='red')
+```
+
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_RF2-2.png)<!-- -->
+
+``` r
+ggplot(data.frame(X=test$X,y_test,y_pred), aes(x=X)) + 
+  geom_point(aes(y=y_test), colour="azure4") + stat_smooth(aes(y=y_test,colour="test"),method = loess, lwd=1.5)+
+  geom_line(aes(y=y_pred, colour="pred"), lwd=1.5) + 
+  geom_line(aes(y=upr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  geom_line(aes(y=lwr, colour="conf_int"), lwd=1,linetype = "dashed") +
+  
+  scale_color_manual(name = "y", values = c("test" = "chartreuse4", "pred" = "deepskyblue4","conf_int" = "deepskyblue3")) + theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
+```
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_RF2-3.png)<!-- -->
 
+``` r
+## ggsave(paste0("Sorties_illustration/pred_Y_MARS_","ech_rep","-vs-test.png"),width=7.29, height=4.5)
+
+graph_Y(name_dat)
+```
+
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_RF2-4.png)<!-- -->
+
+``` r
+beepr::beep(8)
+```
 
 *Calcul distance X*
 
