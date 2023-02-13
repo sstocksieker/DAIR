@@ -258,15 +258,7 @@ df_test=data.frame(test$X,rep("test",length(test$X)))
 colnames(df_train)=c("X","dataset")
 colnames(df_test)=c("X","dataset")
 df = rbind(df_train,df_test)
-
-ggplot(df, aes(X, color=dataset, fill=dataset)) + 
-  geom_histogram(alpha = 0.5,aes(y = ..density..),bins=100,position="identity")+
-  scale_color_manual(values = c("darkred","darkgreen"),labels = c(unname(TeX(c(r"($\textit{D}^i$)"))), unname(TeX(c(r"($\textit{D}^p$)"))))) + 
-  scale_fill_manual(values = c("darkred","darkgreen"),labels = c(unname(TeX(c(r"($\textit{D}^i$)"))), unname(TeX(c(r"($\textit{D}^p$)"))))) +
-  theme(legend.position = c(.95, .95),legend.justification = c("right", "top"),legend.title = element_text(face = "bold"),legend.text = element_text(size=15,hjust=0))
 ```
-
-![](DAIR_Illustration_files/figure-gfm/Graph_Imbalanced-4.png)<!-- -->
 
 Imbalanced analysis for the definition of Imbalanced Covariates
 Regression in the paper.
@@ -568,29 +560,18 @@ Graphical analysis of the rebalanced sample
 
 ### Balanced sample
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_pop-1.png)<!-- -->
-
     ## [1] "deviance expliquee : 97.7"
 
     ## [1] "RMSE : 10.24"
 
     ## [1] "R2 : 97.89"
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_pop-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_pop-3.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_pop-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_pop-1.png)<!-- -->
 
 #### Imbalanced Sample
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech0-1.png)<!-- -->
 
     ## [1] "deviance expliquee : 96.47"
 
@@ -598,20 +579,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 96.61"
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech0-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech0-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech0-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_ech0-1.png)<!-- -->
 
 #### Weighted Resampling (WR) sample
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_add-1.png)<!-- -->
 
     ## [1] "deviance expliquee : 97.46"
 
@@ -619,20 +592,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 96.89"
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_add-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_add-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_add-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_ech_add-1.png)<!-- -->
 
 #### GN-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_GN_SC-1.png)<!-- -->
 
     ## [1] "deviance expliquee : 89.56"
 
@@ -640,20 +605,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 95.53"
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_GN_SC-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_GN_SC-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_GN_SC-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_ech_GN_SC-1.png)<!-- -->
 
 #### GN_GMM-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_GN_GMM-1.png)<!-- -->
 
     ## [1] "deviance expliquee : 95.37"
 
@@ -661,20 +618,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 97.05"
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_GN_GMM-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_GN_GMM-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_GN_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_GN_GMM-1.png)<!-- -->
 
 #### ROSE-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_ROSE_SC-1.png)<!-- -->
 
     ## [1] "deviance expliquee : 87.51"
 
@@ -682,20 +631,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 94.5"
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_ROSE_SC-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_ROSE_SC-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_ROSE_SC-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_ech_ROSE_SC-1.png)<!-- -->
 
 #### ROSE_GMM-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ROSE_GMM-1.png)<!-- -->
 
     ## [1] "deviance expliquee : 93.14"
 
@@ -703,20 +644,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 96.55"
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ROSE_GMM-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ROSE_GMM-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ROSE_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_ROSE_GMM-1.png)<!-- -->
 
 #### KDE-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_kde_boot-1.png)<!-- -->
 
     ## [1] "deviance expliquee : 96.6"
 
@@ -724,20 +657,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 92.02"
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_kde_boot-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_kde_boot-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_kde_boot-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_kde_boot-1.png)<!-- -->
 
 #### KDE_GMM-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_kde_boot_GMM-1.png)<!-- -->
 
     ## [1] "deviance expliquee : 97.81"
 
@@ -745,20 +670,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 96.91"
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_kde_boot_GMM-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_kde_boot_GMM-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_kde_boot_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_kde_boot_GMM-1.png)<!-- -->
 
 #### GMM-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_GMM-1.png)<!-- -->
 
     ## [1] "deviance expliquee : 97.55"
 
@@ -766,20 +683,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 95.92"
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_GMM-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_GMM-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_GMM-1.png)<!-- -->
 
 #### FA_GMM-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_FA_GMM-1.png)<!-- -->
 
     ## [1] "deviance expliquee : 97.64"
 
@@ -787,20 +696,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 96.15"
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_FA_GMM-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_FA_GMM-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_FA_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_FA_GMM-1.png)<!-- -->
 
 #### Copula-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_copule-1.png)<!-- -->
 
     ## [1] "deviance expliquee : 95.41"
 
@@ -808,20 +709,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 90.11"
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_copule-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_copule-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_copule-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_ech_copule-1.png)<!-- -->
 
 #### GAN-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_GAN-1.png)<!-- -->
 
     ## [1] "deviance expliquee : 93.91"
 
@@ -829,20 +722,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 91.49"
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_GAN-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_GAN-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_GAN-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_ech_GAN-1.png)<!-- -->
 
 #### GAN_GMM-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_ctganSynth_GMM-1.png)<!-- -->
 
     ## [1] "deviance expliquee : 85.91"
 
@@ -850,20 +735,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 93.39"
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_ctganSynth_GMM-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_ctganSynth_GMM-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_ctganSynth_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_ech_ctganSynth_GMM-1.png)<!-- -->
 
 #### SMOTE-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_smote-1.png)<!-- -->
 
     ## [1] "deviance expliquee : 97.43"
 
@@ -871,20 +748,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 96.52"
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_smote-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_smote-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_smote-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_ech_smote-1.png)<!-- -->
 
 #### SMOTE_GMM-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_smote_GMM-1.png)<!-- -->
 
     ## [1] "deviance expliquee : 98.2"
 
@@ -892,20 +761,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 97.48"
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_smote_GMM-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_smote_GMM-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_smote_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_ech_smote_GMM-1.png)<!-- -->
 
 #### RF-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_RF2-1.png)<!-- -->
 
     ## [1] "deviance expliquee : 87.96"
 
@@ -913,22 +774,14 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 94.17"
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_RF2-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_RF2-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predGAM_ech_RF2-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predGAM_ech_RF2-1.png)<!-- -->
 
 ## Random Forest Learning
 
 #### Balanced sample
-
-![](DAIR_Illustration_files/figure-gfm/predRF_pop-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 96.5"
 
@@ -936,19 +789,6 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 97.07"
 
-![](DAIR_Illustration_files/figure-gfm/predRF_pop-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_pop-3.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -958,11 +798,9 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_pop-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_pop-1.png)<!-- -->
 
 #### Imbalanced sample
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech0-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 94.61"
 
@@ -970,15 +808,6 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 95.59"
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech0-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech0-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -988,11 +817,9 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech0-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_ech0-1.png)<!-- -->
 
 #### Weighted Resampling (WR) sample
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_add-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 98.25"
 
@@ -1000,15 +827,6 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 95.21"
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_add-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_add-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1018,11 +836,9 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_add-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_ech_add-1.png)<!-- -->
 
 #### GN-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_GN_SC-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 85.11"
 
@@ -1030,15 +846,6 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 91.04"
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_GN_SC-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_GN_SC-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1048,11 +855,9 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_GN_SC-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_ech_GN_SC-1.png)<!-- -->
 
 #### GN_GMM-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predRF_GN_GMM-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 93.17"
 
@@ -1060,15 +865,6 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 95.02"
 
-![](DAIR_Illustration_files/figure-gfm/predRF_GN_GMM-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_GN_GMM-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1078,11 +874,9 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_GN_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_GN_GMM-1.png)<!-- -->
 
 #### ROSE-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_ROSE_SC-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 90.69"
 
@@ -1090,15 +884,6 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 88.77"
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_ROSE_SC-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_ROSE_SC-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1108,11 +893,9 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_ROSE_SC-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_ech_ROSE_SC-1.png)<!-- -->
 
 #### ROSE_GMM-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ROSE_GMM-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 89.71"
 
@@ -1120,15 +903,6 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 93.57"
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ROSE_GMM-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ROSE_GMM-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1138,11 +912,9 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ROSE_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_ROSE_GMM-1.png)<!-- -->
 
 #### KDE-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predRF_kde_boot-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 95.12"
 
@@ -1150,15 +922,6 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 91.74"
 
-![](DAIR_Illustration_files/figure-gfm/predRF_kde_boot-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_kde_boot-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1168,11 +931,9 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_kde_boot-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_kde_boot-1.png)<!-- -->
 
 #### KDE_GMM-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predRF_kde_boot_GMM-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 96.91"
 
@@ -1180,15 +941,6 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 95.9"
 
-![](DAIR_Illustration_files/figure-gfm/predRF_kde_boot_GMM-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_kde_boot_GMM-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1198,11 +950,9 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_kde_boot_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_kde_boot_GMM-1.png)<!-- -->
 
 #### GMM-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predRF_GMM-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 96.32"
 
@@ -1210,15 +960,6 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 95.15"
 
-![](DAIR_Illustration_files/figure-gfm/predRF_GMM-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_GMM-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1228,11 +969,9 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_GMM-1.png)<!-- -->
 
 #### FA_GMM-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predRF_FA_GMM-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 97.02"
 
@@ -1240,15 +979,6 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 94.96"
 
-![](DAIR_Illustration_files/figure-gfm/predRF_FA_GMM-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_FA_GMM-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1258,11 +988,9 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_FA_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_FA_GMM-1.png)<!-- -->
 
 #### Copula-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_copule-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 93.44"
 
@@ -1270,15 +998,6 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 91.73"
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_copule-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_copule-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1288,11 +1007,9 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_copule-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_ech_copule-1.png)<!-- -->
 
 #### GAN-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_GAN-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 91.16"
 
@@ -1300,15 +1017,6 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 90.05"
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_GAN-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_GAN-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1318,11 +1026,9 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_GAN-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_ech_GAN-1.png)<!-- -->
 
 #### GAN_GMM-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_ctganSynth_GMM-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 78.9"
 
@@ -1330,15 +1036,6 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 88.36"
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_ctganSynth_GMM-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_ctganSynth_GMM-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1348,11 +1045,9 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_ctganSynth_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_ech_ctganSynth_GMM-1.png)<!-- -->
 
 #### SMOTE-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_smote-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 96.68"
 
@@ -1360,15 +1055,6 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 94.88"
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_smote-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_smote-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1378,11 +1064,9 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_smote-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_ech_smote-1.png)<!-- -->
 
 #### SMOTE-GMM-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_smote_GMM-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 97.73"
 
@@ -1390,15 +1074,6 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 95.91"
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_smote_GMM-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_smote_GMM-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1408,11 +1083,9 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_smote_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_ech_smote_GMM-1.png)<!-- -->
 
 #### RF-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_RF2-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 84.53"
 
@@ -1420,15 +1093,6 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 91.79"
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_RF2-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_RF2-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
@@ -1438,13 +1102,11 @@ Graphical analysis of the rebalanced sample
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predRF_ech_RF2-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predRF_ech_RF2-1.png)<!-- -->
 
 ## Multivariate Adaptative Regression Spline Learning
 
 #### Balanced sample
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_pop-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 97.37"
 
@@ -1452,20 +1114,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 97.68"
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_pop-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_pop-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_pop-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_pop-1.png)<!-- -->
 
 #### Imbalanced sample
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech0-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 96.4"
 
@@ -1473,20 +1127,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 95.02"
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech0-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech0-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech0-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_ech0-1.png)<!-- -->
 
 #### Weighted Resampling (WR) sample
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_add-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 97.36"
 
@@ -1494,20 +1140,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 96.35"
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_add-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_add-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_add-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_add-1.png)<!-- -->
 
 #### GN-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_GN_SC-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 89.5"
 
@@ -1515,20 +1153,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 95.5"
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_GN_SC-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_GN_SC-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_GN_SC-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_GN_SC-1.png)<!-- -->
 
 #### GN_GMM-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_GN_GMM-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 95.21"
 
@@ -1536,20 +1166,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 96.56"
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_GN_GMM-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_GN_GMM-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_GN_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_GN_GMM-1.png)<!-- -->
 
 #### ROSE-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_ROSE_SC-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 87.51"
 
@@ -1557,20 +1179,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 93.98"
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_ROSE_SC-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_ROSE_SC-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_ROSE_SC-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_ROSE_SC-1.png)<!-- -->
 
 #### ROSE_GMM-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ROSE_GMM-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 93.08"
 
@@ -1578,20 +1192,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 96.34"
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ROSE_GMM-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ROSE_GMM-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ROSE_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_ROSE_GMM-1.png)<!-- -->
 
 #### KDE-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_kde_boot-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 96.47"
 
@@ -1599,20 +1205,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 93.34"
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_kde_boot-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_kde_boot-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_kde_boot-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_kde_boot-1.png)<!-- -->
 
 #### KDE_GMM-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_kde_boot_GMM-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 97.73"
 
@@ -1620,20 +1218,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 96.85"
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_kde_boot_GMM-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_kde_boot_GMM-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_kde_boot_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_kde_boot_GMM-1.png)<!-- -->
 
 #### GMM-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_GMM-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 97.51"
 
@@ -1641,20 +1231,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 95.94"
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_GMM-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_GMM-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_GMM-1.png)<!-- -->
 
 #### FA_GMM-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_FA_GMM-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 97.59"
 
@@ -1662,20 +1244,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 96.11"
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_FA_GMM-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_FA_GMM-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_FA_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_FA_GMM-1.png)<!-- -->
 
 #### Copula-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_copule-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 95.37"
 
@@ -1683,20 +1257,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 90.35"
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_copule-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_copule-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_copule-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_copule-1.png)<!-- -->
 
 #### GAN-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_GAN-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 93.85"
 
@@ -1704,20 +1270,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 91.33"
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_GAN-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_GAN-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_GAN-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_GAN-1.png)<!-- -->
 
 #### GAN_GMM-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_ctganSynth_GMM-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 85.84"
 
@@ -1725,20 +1283,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 92.74"
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_ctganSynth_GMM-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_ctganSynth_GMM-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_ctganSynth_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_ctganSynth_GMM-1.png)<!-- -->
 
 #### SMOTE-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_smote-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 97.37"
 
@@ -1746,20 +1296,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 96.01"
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_smote-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_smote-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_smote-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_smote-1.png)<!-- -->
 
 #### SMOTE_GMM-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_smote_GMM-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 98.09"
 
@@ -1767,20 +1309,12 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 96.44"
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_smote_GMM-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_smote_GMM-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_smote_GMM-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_smote_GMM-1.png)<!-- -->
 
 #### RF-WR sample
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_RF2-1.png)<!-- -->
 
     ## [1] "pseudo-R2 : 87.95"
 
@@ -1788,16 +1322,10 @@ Graphical analysis of the rebalanced sample
 
     ## [1] "R2 : 94.48"
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_RF2-2.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_RF2-3.png)<!-- -->
-
     ## `geom_smooth()` using formula = 'y ~ x'
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_RF2-4.png)<!-- -->
+![](DAIR_Illustration_files/figure-gfm/predMARS2_ech_RF2-1.png)<!-- -->
 
 *Calcul distance X*
 
