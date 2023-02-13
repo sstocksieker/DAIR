@@ -12,7 +12,7 @@ body {
 text-align: justify}
 </style>
 
-check packages version
+check packages version - essai math $X$
 
 ``` r
 sessionInfo()
