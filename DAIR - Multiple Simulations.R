@@ -1691,13 +1691,6 @@ while (nb < n_tir){
 
 beep(8)
 
-STOP
-
-getwd()
-setwd("C:/Users/user/OneDrive/Perso/Thèse/Travaux/Exogenous Sampling/Illustration/Sorties Boucle DAUR (papier)")
-
-
-
 GAM_devExp  = as.data.frame(GAM_devExp)
 GAM_rmse    = as.data.frame(GAM_rmse)
 GAM_R2  = as.data.frame(GAM_R2)
@@ -1735,7 +1728,6 @@ write.csv2(MARS_rmse,"MARS_rmse.CSV")
 
 library("plotly")
 library("ggplot2")
-setwd("C:/Users/user/OneDrive/Perso/Thèse/Travaux/Exogenous Sampling/Illustration/Sorties Boucle DAUR (papier)")
 
 gam_rmse_1 = read.csv2("gam_rmse 1.csv",row.names = NULL)
 gam_rmse_1$X = NULL
