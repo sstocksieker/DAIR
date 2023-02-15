@@ -356,6 +356,9 @@ hist(base0$Total.miles.driven, breaks = 100)
 
 ## Modeling
 
+From the initial population $\mathcal{D}^p$, we construct a test sample,
+denoted by $\mathcal{D}^t$, with a uniform draw.
+
 ``` r
 n_ech = 10000 # size of the train sample
 if (rerun == T){
@@ -636,7 +639,15 @@ k_rmse = which(gam_rmse$ech == "base")
 gam_rmse$rmse[k_rmse] = rmse(test$Y,y_pred_ref)*100
 ```
 
-## Sample drawing
+## Samples drawing
+
+As with the illustration, we defined three samples from population
+$\mathcal{D}^p$ of size $n^p=100,000$ : balanced, imbalanced and test,
+all of a size $n=10,000$. The test sample $\mathcal{D}^t$ is uniformly
+drawn such as all observations in population have the same drawing
+weight ($\frac{1}{n^p}$). The balanced sample is then drawn uniformly
+(with a probability equal to $\frac{1}{n^p - n}$) from the remaining
+population ($\mathcal{D}^p$ $\mathcal{D}^t$).
 
 ``` r
 if (rerun == T){
@@ -646,6 +657,14 @@ hist(ech_rep$X, breaks=100)
 ```
 
 ![](DAIR_Application_files/figure-gfm/echantillonnage2-1.png)<!-- -->
+
+The imbalanced sample is defined according to $X$, , such as: the larger
+$X$ is the smaller the drawing weight is. We want to get a more
+asymmetric distribution than the population with fewer observations
+after 10,000 miles. More precisely, the proposed drawing weight to
+construct the imbalanced sample is defined by a Gaussian distribution
+$\mathcal{N}(2000,6000)$. The distribution obtained has very few values
+above 10,000 miles.
 
 ``` r
 if (rerun == T){
@@ -1759,6 +1778,8 @@ if (exists("kde_boot_GMM")){
 }
 ```
 
+COnditionnal application by $Y$
+
 ``` r
 if (rerun == T){
   # Drawing weight
@@ -1873,6 +1894,8 @@ table(GMM0$Y)
 
 Problem : Y doesn’t take the value 2
 
+Application by $Y$
+
 Graphical analysis
 
 ``` r
@@ -1974,6 +1997,8 @@ if (exists("kde_boot_GMM")){
 }
 ```
 
+The values of $Y$ are not releant : not 2 et negative
+
 Application by cluster
 
 Graphical analysis
@@ -2061,6 +2086,8 @@ graph_Y(dat,name_synth)
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Application_files/figure-gfm/predGAM_FA_GMM-1.png)<!-- -->
+
+Application by $Y$
 
 Graphical analysis
 
@@ -2167,6 +2194,10 @@ graph_X(ech_copule,"ech_copule")
 ```
 
 ![](DAIR_Application_files/figure-gfm/copula_res-2.png)<!-- -->![](DAIR_Application_files/figure-gfm/copula_res-3.png)<!-- -->
+
+The values of $Y$ are only 0 and 1 (not 2)
+
+Application by $Y$
 
 Graphical analysis
 
@@ -2292,6 +2323,8 @@ graph_X(ech_ctganSynth_GMM,"ech_ctganSynth_GMM")
 ```
 
 ![](DAIR_Application_files/figure-gfm/GAN_res-2.png)<!-- -->![](DAIR_Application_files/figure-gfm/GAN_res-3.png)<!-- -->
+
+Only 0 and 1 for $Y$ Application by $Y$
 
 ``` r
 if (rerun == T){
@@ -2491,6 +2524,8 @@ graph_Y(dat,name_synth)
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](DAIR_Application_files/figure-gfm/predGAM_ech_RF-1.png)<!-- -->
+
+Application by $Y$
 
 ``` r
 if (rerun == T){
@@ -2961,7 +2996,7 @@ graph_Y(dat,name_synth)
 
 ![](DAIR_Application_files/figure-gfm/predGAM_ech_smote_GMM-1.png)<!-- -->
 
-Application by Y
+Application by $Y$
 
 ``` r
 if (rerun == T){
@@ -3119,6 +3154,8 @@ graph_Y(dat,name_synth)
 ![](DAIR_Application_files/figure-gfm/predGAM_ech_smote_cond-1.png)<!-- -->
 
 #### Approche SMOGN
+
+On $X$
 
 ``` r
 if (rerun == T){
