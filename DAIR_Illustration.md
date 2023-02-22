@@ -3,7 +3,7 @@ Data Augmentation for Imbalanced Regression - Illustration
 Samuel STOCKSIEKER
 25/01/2023
 
-This code refers to the following paper : lien-Arxiv
+This code refers to the following paper : [lien-Arxiv](http://arxiv.org/abs/2302.09288)
 
 *Import library*
 
