@@ -3,6 +3,8 @@ Data Augmentation for Imbalanced Regression - Application
 Samuel STOCKSIEKER
 25/01/2023
 
+This code refers to the following paper : http://arxiv.org/abs/2302.09288
+
 <style>
 body {
 text-align: justify}
