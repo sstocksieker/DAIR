@@ -36,14 +36,5 @@ dataset : http://www2.math.uconn.edu/~valdez/data.html
 
 paper : Synthetic Dataset Generation of Driver Telematics : https://arxiv.org/pdf/2102.00252.pdf
     
-        
-    
-    
-# <p align="center">Title</p>
-  
-Your description here
-    
-# <p align="center">Title</p>
-  
-Your description here
+
     
