@@ -3,7 +3,7 @@ Data Augmentation for Imbalanced Regression - Illustration
 Samuel STOCKSIEKER
 25/01/2023
 
-This code refers to the following paper : http://arxiv.org/abs/2302.09288
+This code refers to the following paper : lien-Arxiv
 
 *Import library*
 
@@ -11,6 +11,182 @@ This code refers to the following paper : http://arxiv.org/abs/2302.09288
 body {
 text-align: justify}
 </style>
+
+``` r
+library("ggplot2")
+library("UBL")
+```
+
+    ## Le chargement a nécessité le package : MBA
+
+    ## Le chargement a nécessité le package : gstat
+
+    ## Le chargement a nécessité le package : automap
+
+    ## Le chargement a nécessité le package : sp
+
+    ## Le chargement a nécessité le package : randomForest
+
+    ## randomForest 4.7-1.1
+
+    ## Type rfNews() to see new features/changes/bug fixes.
+
+    ## 
+    ## Attachement du package : 'randomForest'
+
+    ## L'objet suivant est masqué depuis 'package:ggplot2':
+    ## 
+    ##     margin
+
+``` r
+library("MASS")
+library("reticulate")
+library("randomForest")
+library("ks")
+library("mclust")
+```
+
+    ## Package 'mclust' version 6.0.0
+    ## Type 'citation("mclust")' for citing this R package in publications.
+
+``` r
+library("kernelboot")
+library("smotefamily")
+library("synthpop")
+```
+
+    ## Find out more at https://www.synthpop.org.uk/
+
+    ## 
+    ## Attachement du package : 'synthpop'
+
+    ## L'objet suivant est masqué depuis 'package:ks':
+    ## 
+    ##     compare
+
+``` r
+library("mgcv")
+```
+
+    ## Le chargement a nécessité le package : nlme
+
+    ## This is mgcv 1.8-41. For overview type 'help("mgcv-package")'.
+
+    ## 
+    ## Attachement du package : 'mgcv'
+
+    ## L'objet suivant est masqué depuis 'package:mclust':
+    ## 
+    ##     mvn
+
+``` r
+library("Metrics")
+library("earth")
+```
+
+    ## Le chargement a nécessité le package : Formula
+
+    ## Le chargement a nécessité le package : plotmo
+
+    ## Le chargement a nécessité le package : plotrix
+
+    ## Le chargement a nécessité le package : TeachingDemos
+
+``` r
+library("mda")
+```
+
+    ## Le chargement a nécessité le package : class
+
+    ## Loaded mda 0.5-3
+
+``` r
+library("pdp")
+library("beepr")
+library("statip")
+```
+
+    ## 
+    ## Attachement du package : 'statip'
+
+    ## L'objet suivant est masqué depuis 'package:UBL':
+    ## 
+    ##     predict
+
+    ## L'objet suivant est masqué depuis 'package:sp':
+    ## 
+    ##     plot
+
+``` r
+library("seewave")
+```
+
+    ## 
+    ## Attachement du package : 'seewave'
+
+    ## L'objet suivant est masqué depuis 'package:beepr':
+    ## 
+    ##     beep
+
+    ## L'objet suivant est masqué depuis 'package:plotrix':
+    ## 
+    ##     rescale
+
+``` r
+library("plotly")
+```
+
+    ## Registered S3 method overwritten by 'httr':
+    ##   method         from  
+    ##   print.response rmutil
+
+    ## 
+    ## Attachement du package : 'plotly'
+
+    ## L'objet suivant est masqué depuis 'package:seewave':
+    ## 
+    ##     export
+
+    ## L'objet suivant est masqué depuis 'package:TeachingDemos':
+    ## 
+    ##     subplot
+
+    ## L'objet suivant est masqué depuis 'package:MASS':
+    ## 
+    ##     select
+
+    ## L'objet suivant est masqué depuis 'package:ggplot2':
+    ## 
+    ##     last_plot
+
+    ## L'objet suivant est masqué depuis 'package:stats':
+    ## 
+    ##     filter
+
+    ## L'objet suivant est masqué depuis 'package:graphics':
+    ## 
+    ##     layout
+
+``` r
+library("latex2exp")
+```
+
+    ## 
+    ## Attachement du package : 'latex2exp'
+
+    ## L'objet suivant est masqué depuis 'package:plotly':
+    ## 
+    ##     TeX
+
+``` r
+knitr::opts_chunk$set(echo = TRUE,warning=FALSE)
+
+rerun = F # = T to restart the simulations, F to run with the loaded workspace (AISTATS version)
+
+if (rerun == F){
+  load("C:/Users/samgo/OneDrive/Perso/Thèse/Travaux/Exogenous Sampling/Illustration/WKS/wks-Illu-AISTATS.RData")
+}
+```
 
 check packages version
 
@@ -40,7 +216,7 @@ sessionInfo()
     ## [13] Formula_1.2-4        Metrics_0.1.4        mgcv_1.8-41         
     ## [16] nlme_3.1-160         synthpop_1.8-0       smotefamily_1.3.1   
     ## [19] kernelboot_0.1.9     mclust_6.0.0         ks_1.14.0           
-    ## [22] reticulate_1.27      MASS_7.3-58.1        UBL_0.0.7           
+    ## [22] reticulate_1.27      MASS_7.3-58.2        UBL_0.0.7           
     ## [25] randomForest_4.7-1.1 automap_1.0-16       sp_1.5-1            
     ## [28] gstat_2.1-0          MBA_0.1-0            ggplot2_3.4.0       
     ## 

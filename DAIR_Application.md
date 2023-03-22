@@ -10,7 +10,228 @@ text-align: justify}
 
 *Import library*
 
+``` r
+library("mgcv")
+```
+
+    ## Le chargement a nécessité le package : nlme
+
+    ## This is mgcv 1.8-41. For overview type 'help("mgcv-package")'.
+
+``` r
+library("MASS")
+library("Metrics")
+library("mclust")
+```
+
+    ## Package 'mclust' version 6.0.0
+    ## Type 'citation("mclust")' for citing this R package in publications.
+
+    ## 
+    ## Attachement du package : 'mclust'
+
+    ## L'objet suivant est masqué depuis 'package:mgcv':
+    ## 
+    ##     mvn
+
+``` r
+library("ggplot2")
+library("UBL")
+```
+
+    ## Le chargement a nécessité le package : MBA
+
+    ## Le chargement a nécessité le package : gstat
+
+    ## Le chargement a nécessité le package : automap
+
+    ## Le chargement a nécessité le package : sp
+
+    ## Le chargement a nécessité le package : randomForest
+
+    ## randomForest 4.7-1.1
+
+    ## Type rfNews() to see new features/changes/bug fixes.
+
+    ## 
+    ## Attachement du package : 'randomForest'
+
+    ## L'objet suivant est masqué depuis 'package:ggplot2':
+    ## 
+    ##     margin
+
+``` r
+library("h2o")
+```
+
+    ## 
+    ## ----------------------------------------------------------------------
+    ## 
+    ## Your next step is to start H2O:
+    ##     > h2o.init()
+    ## 
+    ## For H2O package documentation, ask for help:
+    ##     > ??h2o
+    ## 
+    ## After starting H2O, you can use the Web UI at http://localhost:54321
+    ## For more information visit https://docs.h2o.ai
+    ## 
+    ## ----------------------------------------------------------------------
+
+    ## 
+    ## Attachement du package : 'h2o'
+
+    ## Les objets suivants sont masqués depuis 'package:stats':
+    ## 
+    ##     cor, sd, var
+
+    ## Les objets suivants sont masqués depuis 'package:base':
+    ## 
+    ##     %*%, %in%, &&, ||, apply, as.factor, as.numeric, colnames,
+    ##     colnames<-, ifelse, is.character, is.factor, is.numeric, log,
+    ##     log10, log1p, log2, round, signif, trunc
+
+``` r
+library("MASS")
+library("reticulate")
+library("randomForest")
+library("kernelboot")
+library("smotefamily")
+library("synthpop")
+```
+
+    ## Find out more at https://www.synthpop.org.uk/
+
+``` r
+library("earth")
+```
+
+    ## Le chargement a nécessité le package : Formula
+
+    ## Le chargement a nécessité le package : plotmo
+
+    ## Le chargement a nécessité le package : plotrix
+
+    ## Le chargement a nécessité le package : TeachingDemos
+
+``` r
+library("mda")
+```
+
+    ## Le chargement a nécessité le package : class
+
+    ## Loaded mda 0.5-3
+
+``` r
+library("beepr")
+library("plotly")
+```
+
+    ## Registered S3 method overwritten by 'httr':
+    ##   method         from  
+    ##   print.response rmutil
+
+    ## 
+    ## Attachement du package : 'plotly'
+
+    ## L'objet suivant est masqué depuis 'package:TeachingDemos':
+    ## 
+    ##     subplot
+
+    ## L'objet suivant est masqué depuis 'package:ggplot2':
+    ## 
+    ##     last_plot
+
+    ## L'objet suivant est masqué depuis 'package:MASS':
+    ## 
+    ##     select
+
+    ## L'objet suivant est masqué depuis 'package:stats':
+    ## 
+    ##     filter
+
+    ## L'objet suivant est masqué depuis 'package:graphics':
+    ## 
+    ##     layout
+
+``` r
+library("splines")
+library("pscl")
+```
+
+    ## Classes and Methods for R developed in the
+    ## Political Science Computational Laboratory
+    ## Department of Political Science
+    ## Stanford University
+    ## Simon Jackman
+    ## hurdle and zeroinfl functions by Achim Zeileis
+
+``` r
+library("statip")
+```
+
+    ## 
+    ## Attachement du package : 'statip'
+
+    ## L'objet suivant est masqué depuis 'package:h2o':
+    ## 
+    ##     plot
+
+    ## L'objet suivant est masqué depuis 'package:UBL':
+    ## 
+    ##     predict
+
+    ## L'objet suivant est masqué depuis 'package:sp':
+    ## 
+    ##     plot
+
+``` r
+library("seewave")
+```
+
+    ## 
+    ## Attachement du package : 'seewave'
+
+    ## L'objet suivant est masqué depuis 'package:plotly':
+    ## 
+    ##     export
+
+    ## L'objet suivant est masqué depuis 'package:beepr':
+    ## 
+    ##     beep
+
+    ## L'objet suivant est masqué depuis 'package:plotrix':
+    ## 
+    ##     rescale
+
+``` r
+library("latex2exp")
+```
+
+    ## 
+    ## Attachement du package : 'latex2exp'
+
+    ## L'objet suivant est masqué depuis 'package:plotly':
+    ## 
+    ##     TeX
+
 *Workspace*
+
+``` r
+require("knitr")
+```
+
+    ## Le chargement a nécessité le package : knitr
+
+``` r
+knitr::opts_chunk$set(echo = TRUE,warning=FALSE)
+
+rerun = F # = T to restart the simulations, F to work with the loaded workspace
+
+if (rerun == F){
+  load("C:/Users/samgo/OneDrive/Perso/Thèse/Travaux/Exogenous Sampling/Application/WKS/wks-Appli-Telematics-ZIP MGCV - AISTATS.RData")
+}
+```
 
 *Versioning*
 
@@ -43,7 +264,7 @@ sessionInfo()
     ## [19] h2o_3.38.0.1         UBL_0.0.7            randomForest_4.7-1.1
     ## [22] automap_1.0-16       sp_1.5-1             gstat_2.1-0         
     ## [25] MBA_0.1-0            ggplot2_3.4.0        mclust_6.0.0        
-    ## [28] Metrics_0.1.4        MASS_7.3-58.1        mgcv_1.8-41         
+    ## [28] Metrics_0.1.4        MASS_7.3-58.2        mgcv_1.8-41         
     ## [31] nlme_3.1-160        
     ## 
     ## loaded via a namespace (and not attached):
@@ -142,6 +363,10 @@ stats4_4.2.0
 dataset : <http://www2.math.uconn.edu/~valdez/data.html> paper :
 Synthetic Dataset Generation of Driver Telematics :
 <https://arxiv.org/pdf/2102.00252.pdf>
+
+``` r
+base0 = read.csv("telematics_syn-032021.csv", header=T)
+```
 
 *initialization*
 
@@ -1233,6 +1458,38 @@ graph_Y(dat,name_synth)
 **Gaussian Noise on the augmented dataset, by cluster and application of
 WR algorithm**
 
+``` r
+if (rerun == T){
+  # Approche post-clustering : clustering par GMM puis GN/cluster
+  N = 100000
+  DMC = densityMclust(ech0, plot=F,G=2:6)
+  ech_MC = cbind(ech0,"cluster" = DMC$classification)
+  cl = max(ech_MC$cluster)
+  for (tir in seq(round(N/nrow(ech_add)))){
+    for (i in (1:cl)){
+        temp = ech_MC[ech_MC$cluster == i,]
+        ech_add_temp = merge(temp, ech_add, on ="X")
+        N = nrow(ech_add_temp)
+        ech_GN=ech_add_temp
+        for (j in (1:ncol(ech_add_temp))) {
+          if (colnames(ech_add_temp)[j] != "Duration"){
+              ech_GN[, j] = ech_add_temp[, j] +
+                rnorm(nrow(ech_add_temp), 0, sd(temp[,colnames(temp)[j]]) * pert)
+          }
+        }
+        if (tir==1 & i==1){
+          GN_GMM = ech_GN
+        }else{
+          GN_GMM = rbind(GN_GMM,ech_GN)
+        }
+    }
+  }
+  
+  # WR algorithm
+  GN_GMM = WR(GN_GMM,GN_GMM$X,n_ech)
+}
+```
+
 Graphical analysis
 
 ``` r
@@ -1884,6 +2141,18 @@ if (exists("kde_boot_cond")){
 #### Gaussian Mixture Model (GMM)
 
 ``` r
+if (rerun == T){
+  DMC = densityMclust(ech0, plot=F,G=2:10)
+  GMM = as.data.frame(sim(modelName=DMC$modelName,parameters=DMC$parameters,n=100000))
+  colnames(GMM) = c("cluster",colnames(ech0))
+  GMM0 = GMM
+  
+  # WR algorithm
+  GMM = WR(GMM,GMM$X,n_ech)
+}
+```
+
+``` r
 GMM0$Y = round(GMM0$Y,0)
 table(GMM0$Y)
 ```
@@ -1895,6 +2164,30 @@ table(GMM0$Y)
 Problem : Y doesn’t take the value 2
 
 Application by $Y$
+
+``` r
+if (rerun == T){
+  try({
+    filtre_varY = c("X","Insured.age","Car.age","Credit.score","Years.noclaims","Duration")
+    ech0_ssY = ech0[,filtre_varY]
+    
+    cl = max(ech0$Y)+1
+    for (i in (1:cl)){
+      temp = ech0_ssY[ech0$Y == i-1,]
+      DMC_temp = densityMclust(temp, plot=F,G=2:5)
+      GMM = as.data.frame(sim(modelName=DMC_temp$modelName,parameters=DMC_temp$parameters,n=nrow(temp)*10))
+      colnames(GMM) = c("cluster",colnames(ech0_ssY))
+       GMM = cbind(GMM, 'Y' = i-1)
+      if (i == 1) {
+        GMM_cond = GMM
+      }else {GMM_cond = rbind(GMM_cond,GMM)}
+    }
+    
+    # WR algorithm
+    GMM_cond = WR(GMM_cond,GMM_cond$X,n_ech)
+  })
+}
+```
 
 Graphical analysis
 
@@ -1984,6 +2277,59 @@ graph_Y(dat,name_synth)
 
 #### Factor analysis (FA)
 
+``` r
+if (rerun == T){
+  ech = ech0
+  
+  if ("cluster" %in% colnames(ech)) {
+    cl = max(ech$cluster)
+    p = length(colnames(ech))-1
+  }else {
+    cl = 1
+    p = length(colnames(ech))
+  }
+  phi = array(rep(0,cl*p),dim=c(1,p,cl))
+  W = array(rep(0,cl*p*(p-1)),dim=c(p-1,p,cl))
+  mu = array(rep(0,cl*p),dim=c(1,p,cl))
+  for (i in (1:cl)){
+    if ("cluster" %in% colnames(ech)) {
+      temp = ech[ech$cluster == i,]
+    } else {temp = ech}
+    temp = temp[,filtre_var]
+    p = length(colnames(temp))
+    p_py = r_to_py(p,convert=TRUE)
+    py_run_string("from sklearn.decomposition import FactorAnalysis")
+    ech_py = r_to_py(temp,convert=TRUE)
+    py_run_string("p=r.ech_py.shape[1]")
+    py_run_string("transformer = FactorAnalysis(n_components=p-1, random_state=0)")
+    py_run_string("X_transformed = transformer.fit_transform(r.ech_py)")
+    py_run_string("noise_var = transformer.noise_variance_")
+    py_run_string("mu = transformer.mean_")
+    py_run_string("comp = transformer.components_")
+    phi[,,i] = py$noise_var
+    W[,,i] = py$comp
+    mu[,,i] = py$mu
+  }
+  # Data generation
+  for (i in (1:cl)){
+    if ("cluster" %in% colnames(ech)) {
+      n_ds = sum(ech$cluster == i)*10
+    }else{n_ds = nrow(ech)*10}
+    Z = mvrnorm(n_ds,rep(0,p-1),diag(rep(1,p-1)))
+    temp = Z%*%W[,,i]  +  t(matrix(rep(mu[,,i],n_ds),p,n_ds)) + mvrnorm(n_ds,rep(0,p),diag(phi[,,i]))
+    temp = as.data.frame(cbind(temp,cluster = i))
+    if (i == 1) {
+      FA = temp
+    }else {FA = rbind(FA,temp)}
+  }
+  FA = as.data.frame(FA)
+  colnames(FA) = c(colnames(ech0),"cluster")
+  
+  # WR algorithm
+  FA = WR(FA,FA$X,n_ech)
+}
+```
+
 Graphical analysis
 
 ``` r
@@ -2000,6 +2346,60 @@ if (exists("kde_boot_GMM")){
 The values of $Y$ are not releant : not 2 et negative
 
 Application by cluster
+
+``` r
+if (rerun == T){
+  DMC = densityMclust(ech0, plot=F,G=2:6)
+  ech_MC = cbind(ech0,"cluster" = DMC$classification)
+  
+  ech = ech_MC
+  
+  if ("cluster" %in% colnames(ech)) {
+    cl = max(ech$cluster)
+    p = length(colnames(ech))-1
+  }else {
+    cl = 1
+    p = length(colnames(ech))
+  }
+  phi = array(rep(0,cl*p),dim=c(1,p,cl))
+  W = array(rep(0,cl*p*(p-1)),dim=c(p-1,p,cl))
+  mu = array(rep(0,cl*p),dim=c(1,p,cl))
+  for (i in (1:cl)){
+    if ("cluster" %in% colnames(ech)) {
+      temp = ech[ech$cluster == i,]
+    } else {temp = ech}
+    temp = temp[,filtre_var]
+    p = length(colnames(temp))
+    p_py = r_to_py(p,convert=TRUE)
+    py_run_string("from sklearn.decomposition import FactorAnalysis")
+    ech_py = r_to_py(temp,convert=TRUE)
+    py_run_string("p=r.ech_py.shape[1]")
+    py_run_string("transformer = FactorAnalysis(n_components=p-1, random_state=0)")
+    py_run_string("X_transformed = transformer.fit_transform(r.ech_py)")
+    py_run_string("noise_var = transformer.noise_variance_")
+    py_run_string("mu = transformer.mean_")
+    py_run_string("comp = transformer.components_")
+    phi[,,i] = py$noise_var
+    W[,,i] = py$comp
+    mu[,,i] = py$mu
+  }
+  # Data generation
+  for (i in (1:cl)){
+    n_ds = sum(ech$cluster == i)*100
+    Z = mvrnorm(n_ds,rep(0,p-1),diag(rep(1,p-1)))
+    temp = Z%*%W[,,i]  +  t(matrix(rep(mu[,,i],n_ds),p,n_ds)) + mvrnorm(n_ds,rep(0,p),diag(phi[,,i]))
+    temp = as.data.frame(cbind(temp,cluster = i))
+    if (i == 1) {
+      FA = temp
+    }else {FA = rbind(FA,temp)}
+  }
+  FA_GMM = as.data.frame(FA)
+  colnames(FA_GMM) = c(colnames(ech0),"cluster")
+  
+  # WR algorithm
+  FA_GMM = WR(FA_GMM,FA_GMM$X,n_ech)
+}
+```
 
 Graphical analysis
 
@@ -2089,6 +2489,51 @@ graph_Y(dat,name_synth)
 
 Application by $Y$
 
+``` r
+if (rerun == T){
+  
+  ech = ech0
+  ech0_ssY = ech0[,c("X", "Insured.age", "Car.age", "Credit.score", "Years.noclaims", "Duration")]
+  
+  cl = max(ech$Y)+1
+  p = length(colnames(ech0_ssY))
+  phi = array(rep(0,cl*p),dim=c(1,p,cl))
+  W = array(rep(0,cl*p*(p-1)),dim=c(p-1,p,cl))
+  mu = array(rep(0,cl*p),dim=c(1,p,cl))
+  for (i in (1:cl)){
+    temp = ech0_ssY[ech$Y == i-1,]
+    p = length(colnames(temp))
+    p_py = r_to_py(p,convert=TRUE)
+    py_run_string("from sklearn.decomposition import FactorAnalysis")
+    ech_py = r_to_py(temp,convert=TRUE)
+    py_run_string("p=r.ech_py.shape[1]")
+    py_run_string("transformer = FactorAnalysis(n_components=p-1, random_state=0)")
+    py_run_string("X_transformed = transformer.fit_transform(r.ech_py)")
+    py_run_string("noise_var = transformer.noise_variance_")
+    py_run_string("mu = transformer.mean_")
+    py_run_string("comp = transformer.components_")
+    phi[,,i] = py$noise_var
+    W[,,i] = py$comp
+    mu[,,i] = py$mu
+  }
+  # Data generation
+  for (i in (1:cl)){
+    n_ds = sum(ech$Y == i-1)*100
+    Z = mvrnorm(n_ds,rep(0,p-1),diag(rep(1,p-1)))
+    temp = Z%*%W[,,i]  +  t(matrix(rep(mu[,,i],n_ds),p,n_ds)) + mvrnorm(n_ds,rep(0,p),diag(phi[,,i]))
+    temp = as.data.frame(cbind(temp,"Y" = i-1))
+    if (i == 1) {
+      FA = temp
+    }else {FA = rbind(FA,temp)}
+  }
+  FA_cond = as.data.frame(FA)
+  colnames(FA_cond) = c(colnames(ech0_ssY),"Y")
+  
+  # WR algorithm
+  FA_cond = WR(FA_cond,FA_cond$X,n_ech)
+}
+```
+
 Graphical analysis
 
 ``` r
@@ -2177,6 +2622,20 @@ graph_Y(dat,name_synth)
 
 ### Copula
 
+``` r
+if (rerun == T){
+  py_run_string("from sdv.tabular import GaussianCopula")
+  ech_py = r_to_py(ech0,convert=TRUE)
+  py_run_string("copule = GaussianCopula()")
+  py_run_string("copule.fit(r.ech_py)")
+  py_run_string("ech_copule_py = copule.sample(100000)")
+  ech_copule = py$ech_copule_py
+  
+  # WR algorithm
+  ech_copule = WR(ech_copule,ech_copule$X,n_ech)
+}
+```
+
 Graphical analysis
 
 ``` r
@@ -2198,6 +2657,32 @@ graph_X(ech_copule,"ech_copule")
 The values of $Y$ are only 0 and 1 (not 2)
 
 Application by $Y$
+
+``` r
+if (rerun == T){
+  ech = ech0
+  ech0_ssY = ech0[,c("X", "Insured.age", "Car.age", "Credit.score", "Years.noclaims", "Duration")]
+  
+  cl = max(ech$Y)+1
+  for (i in (1:cl)){
+    temp = ech0_ssY[ech$Y == i-1,]
+    py_run_string("from sdv.tabular import GaussianCopula")
+    ech_py = r_to_py(temp,convert=TRUE)
+    py_run_string("copule = GaussianCopula()")
+    py_run_string("copule.fit(r.ech_py)")
+    py_run_string("p = len(r.ech_py)")
+    py_run_string("ech_copule_py = copule.sample(p * 100)")
+    ech_copule = py$ech_copule_py
+    ech_copule = cbind(ech_copule, 'Y' = i-1)
+    if (i == 1) {
+      ech_copule_cond = ech_copule
+    }else {ech_copule_cond = rbind(ech_copule_cond,ech_copule)}
+  }
+  
+  # WR algorithm
+  ech_copule_cond = WR(ech_copule_cond,ech_copule_cond$X,n_ech)
+}
+```
 
 Graphical analysis
 
