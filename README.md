@@ -23,9 +23,13 @@ illustration, the algorithms are intentionally evaluated on a
 complicated case with two inflection points on the border
 of the observed support to get a strong impact on the regression in order to assess the method.
 
+corresponding code : *DAIR_Illustration.md*
+
 
 To avoid a sampling effect and give more robustness to the
 results, we test our method on 100 imbalanced samples.
+
+corresponding code : *DAIR - Multiple Simulations.R*
 
 
 ## <p align="center">Application</p>
@@ -35,6 +39,8 @@ We test our approach on a portfolio of automobile insurance described in a datas
 dataset : http://www2.math.uconn.edu/~valdez/data.html 
 
 paper : Synthetic Dataset Generation of Driver Telematics : https://arxiv.org/pdf/2102.00252.pdf
+
+corresponding code : *DAIR_Application.md*
     
 
     
